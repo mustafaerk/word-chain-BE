@@ -5,9 +5,9 @@ const RoomModel = require("../../db/roomSchema");
 
 module.exports.createRoom_post = async (req, res) => {
     const { roomAvatarId, userInfo, roomSize, roomName, isPublic } = req.body;
-
+    const roomId = uuidv4()
     const room = {
-        roomId: uuidv4(),
+        roomId,
         createDate: Date.now(),
         roomAvatarId,
         ownerId: userInfo.id,
@@ -31,7 +31,7 @@ module.exports.createRoom_post = async (req, res) => {
         }
         res.statusCode = 200;
         res.statusMessage = "Success";
-        res.send({ status: res.statusCode, message: res.statusMessage });
+        res.send({ status: res.statusCode, data: { roomId }, message: res.statusMessage });
     });
 }
 

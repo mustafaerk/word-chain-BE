@@ -8,6 +8,8 @@ require("dotenv").config({ path: `.env.${process.env.NODE_ENV}` });
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+var socket = require('socket.io');
+
 const authRoutes = require('./src/route/authRoutes');
 const roomRoutes = require('./src/route/roomRoutes');
 
@@ -48,6 +50,26 @@ mongoose.connect(uri, {
 app.use(authRoutes);
 app.use(roomRoutes);
 
-app.listen(PORT, () => {
+var server = app.listen(PORT, () => {
   console.log(PORT, "Sunucu çalışıyor...");
+});
+
+const io = socket(server);
+
+
+io.on('connection', function (socket) {
+  console.log("New user Connected")
+
+  socket.on("joinRoom", async function (data) {
+    socket.join(data.roomId); 
+    // TODO: Find next user Id and send with data
+    socket.on("gameMessage", async function (message) {
+      switch (message.action_type) {
+        case "MESSAGE":
+          io.in(message.roomId).emit("gameMessage", { message, nextUserId: 1231 });
+          break;
+      }
+    });
+  });
+
 });
