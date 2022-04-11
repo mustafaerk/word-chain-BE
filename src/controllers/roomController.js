@@ -5,7 +5,7 @@ const RoomModel = require("../../db/roomSchema");
 module.exports.createRoom_post = async (req, res) => {
   try {
     const { roomAvatarId, userInfo, roomSize, roomName, isPublic } = req.body;
-
+    const roomId = uuidv4()
     const room = {
       roomId: uuidv4(),
       createDate: Date.now(),
