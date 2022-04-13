@@ -1,5 +1,5 @@
 //Connection
-var socket = io.connect('http://localhost:3000');
+var socket = io.connect("http://localhost:3000");
 
 var userName = document.querySelector("#name");
 var button = document.querySelector("#send");
@@ -11,30 +11,53 @@ var messageArea = document.querySelector("#msgArea");
 
 var typing = document.querySelector("#msgtyping");
 
-
+var leave = document.querySelector(".leave");
 
 button.addEventListener("click", function () {
-    socket.emit('joinRoom', {
-        roomId: "0142f610-d5ae-484c-a5e0-0b59c8abc214"
-    });
+  socket.emit("joinRoom", {
+    roomId: "0142f610-d5ae-484c-a5e0-0b59c8abc214",
+    userId: "123",
+  });
+});
+leave.addEventListener("click", function () {
+  console.log("it");
+  var user = {
+    name: "aptal",
+    id: "1",
+  };
+  socket.emit("leave", {
+    userInfo: user,
+    roomId: "0142f610-d5ae-484c-a5e0-0b59c8abc214",
+  });
 });
 
-socket.on('gameMessage', function (data) {
-    console.log(data);
-    typing.innerHTML = "";
-    messageArea.innerHTML += `
-        <p><bold>${data.action_type}:</bold>${data.message}</p>
+socket.on("gameMessage", function (data) {
+  console.log(data);
+  typing.innerHTML = "";
+  messageArea.innerHTML += `
+        <p><bold>${data.message.action_type}:</bold>${data.message.message}</p>
     `;
 });
-
+socket.on("join", function (data) {
+  console.log(data);
+  messageArea.innerHTML += `
+                <p><bold>${data.userId}:</bold>Katıldı.</p>
+            `;
+});
+socket.on("leave", function (data) {
+  console.log(data);
+  messageArea.innerHTML += `
+            <p><bold>${data.message.userInfo.name}:</bold>Ayrıldı.</p>
+        `;
+});
 
 send.addEventListener("click", function () {
-    console.log("joinRoom")
-    socket.emit('gameMessage', {
-        action_type: "MESSAGE",
-        message: message.value,
-        roomId: "0142f610-d5ae-484c-a5e0-0b59c8abc214"
-    });
+  console.log("joinRoom");
+  socket.emit("gameMessage", {
+    action_type: "MESSAGE",
+    message: message.value,
+    roomId: "0142f610-d5ae-484c-a5e0-0b59c8abc214",
+  });
 });
 
 /*message.addEventListener("keypress",function(){

@@ -8,16 +8,16 @@ require("dotenv").config({ path: `.env.${process.env.NODE_ENV}` });
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-var socket = require('socket.io');
+var socket = require("socket.io");
 
-const authRoutes = require('./src/route/authRoutes');
-const roomRoutes = require('./src/route/roomRoutes');
+const authRoutes = require("./src/route/authRoutes");
+const roomRoutes = require("./src/route/roomRoutes");
 
 /* ---------------------------------- */
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const uri = process.env.MONGO_URL || 'mongodb://localhost:27017/wordChainDev';
+const uri = process.env.MONGO_URL || "mongodb://localhost:27017/wordChainDev";
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -46,7 +46,6 @@ mongoose.connect(uri, {
 });
 /* ---------------------------------- */
 
-
 app.use(authRoutes);
 app.use(roomRoutes);
 
@@ -56,20 +55,30 @@ var server = app.listen(PORT, () => {
 
 const io = socket(server);
 
-
-io.on('connection', function (socket) {
-  console.log("New user Connected")
+io.on("connection", function (socket) {
+  console.log("New user Connected");
 
   socket.on("joinRoom", async function (data) {
-    socket.join(data.roomId); 
+    socket.join(data.roomId);
+    socket.broadcast.to(data.roomId).emit("join", {
+      ...data,
+    });
     // TODO: Find next user Id and send with data
     socket.on("gameMessage", async function (message) {
       switch (message.action_type) {
         case "MESSAGE":
-          io.in(message.roomId).emit("gameMessage", { message, nextUserId: 1231 });
+          io.in(message.roomId).emit("gameMessage", {
+            message,
+            nextUserId: 1231,
+          });
           break;
       }
     });
+    socket.on("leave", async function (message) {
+      socket.broadcast.to(data.roomId).emit("leave", {
+        message,
+      });
+      socket.leave(message.roomId);
+    });
   });
-
 });

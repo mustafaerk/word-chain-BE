@@ -7,6 +7,7 @@ const router = Router();
 router.post('/createRoom', verifyJwt, roomController.createRoom_post);
 router.get('/listRooms', verifyJwt, roomController.listRoom_get);
 router.post('/joinRoom', verifyJwt, roomController.joinRoom_post);
+router.post('/leaveRoom', verifyJwt, roomController.leaveRoom_post);
 
 module.exports = router;
 

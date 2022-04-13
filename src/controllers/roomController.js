@@ -4,20 +4,20 @@ const RoomModel = require("../../db/roomSchema");
 
 module.exports.createRoom_post = async (req, res) => {
   try {
-    const { roomAvatarId, userInfo, roomSize, roomName, isPublic } = req.body;
-    const roomId = uuidv4()
+    const { roomAvatarId, userToken, roomSize, roomName, isPublic } = req.body;
+    const roomId = uuidv4();
     const room = {
       roomId: uuidv4(),
       createDate: Date.now(),
       roomAvatarId,
-      ownerId: userInfo.id,
+      ownerId: userToken.id,
       users: [
         {
-          name: userInfo.name,
-          id: userInfo.id,
+          name: userToken.name,
+          id: userToken.id,
           isEliminated: false,
-          language: userInfo.lang,
-          userAvatarId: userInfo.avatarId,
+          language: userToken.language,
+          userAvatarId: userToken.avatarId,
         },
       ],
       roomSize,
@@ -58,14 +58,16 @@ module.exports.listRoom_get = async (req, res) => {
 
 module.exports.joinRoom_post = async (req, res) => {
   try {
-    const { roomId, userInfo, userToken } = req.body;
-    RoomModel.findOne({ roomId: roomId }, (room) => {
+    const { roomId, userToken } = req.body;
+    console.log(roomId, userToken, userToken);
+    RoomModel.findOne({ roomId: roomId }, (err, room) => {
+      console.log(room);
       var user = {
-        id: userInfo.id,
-        name: userInfo.name,
+        id: userToken.id,
+        name: userToken.name,
         isEliminated: false,
-        language: userInfo.language,
-        userAvatarId: userInfo.avatarId,
+        language: userToken.language,
+        userAvatarId: userToken.avatarId,
       };
       const searchFindUser = (element) => element.id == user.id;
       if (room.blockedUsers.findIndex(searchFindUser) != -1) {
@@ -82,8 +84,34 @@ module.exports.joinRoom_post = async (req, res) => {
         });
       } else {
         res.statusCode = 400;
-        res.statusMessage = "Failed";
+        res.statusMessage = "Room is Full";
         res.send({ status: res.statusCode, message: res.statusMessage });
+      }
+    });
+  } catch (err) {
+    res.statusCode = 400;
+    res.send({ status: 400, message: err });
+  }
+};
+
+module.exports.leaveRoom_post = async (req, res) => {
+  try {
+    const { roomId, userToken } = req.body;
+    console.log(userToken);
+    console.log(roomId);
+    RoomModel.findOne({ roomId: roomId }, (err, room) => {
+      console.log(room);
+      const searchFindUser = (element) => element.id == userToken.id;
+      if (room.users.findIndex(searchFindUser) != -1) {
+        room.users = room.users.filter((item) => item.id !== userToken.id);
+        if (room.users.length == 0) {
+          room.isActive = false;
+        }
+        room.save(() => {
+          res.statusCode = 200;
+          res.statusMessage = "Success";
+          res.send({ status: res.statusCode, message: res.statusMessage });
+        });
       }
     });
   } catch (err) {
