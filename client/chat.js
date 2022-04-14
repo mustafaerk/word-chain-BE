@@ -36,6 +36,8 @@ socket.on("gameMessage", function (data) {
   typing.innerHTML = "";
   messageArea.innerHTML += `
         <p><bold>${data.message.action_type}:</bold>${data.message.message}</p>
+        <p>TURN ID:${data.nextUserId}</p>
+        <p>TURN INDEX:${data.nextUserIndex}</p>
     `;
 });
 socket.on("join", function (data) {

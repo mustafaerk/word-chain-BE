@@ -63,13 +63,21 @@ io.on("connection", function (socket) {
     socket.broadcast.to(data.roomId).emit("join", {
       ...data,
     });
-    // TODO: Find next user Id and send with data
+    // TODO: Find next user Id and send with data : DONE
+    // TODO: Add words to DB
     socket.on("gameMessage", async function (message) {
       switch (message.action_type) {
         case "MESSAGE":
+          const clients = io.sockets.adapter.rooms.get(data.roomId);
+          const usersArray = [...clients];
+          const index = usersArray.indexOf(socket.id);
+          const nextIndex = usersArray.length - 1 > index ? index + 1 : 0;
+          const nextUser = usersArray[nextIndex];
+
           io.in(message.roomId).emit("gameMessage", {
             message,
-            nextUserId: 1231,
+            nextUserId: nextUser,
+            nextUserIndex: nextIndex,
           });
           break;
       }
