@@ -74,11 +74,18 @@ io.on("connection", function (socket) {
           break;
       }
     });
+    // Leave Room
     socket.on("leave", async function (message) {
       socket.broadcast.to(data.roomId).emit("leave", {
         message,
       });
       socket.leave(message.roomId);
+    });
+    // Game Start
+    socket.on("gameStart", async function () {
+      socket.broadcast.to(data.roomId).emit("start", {
+        status: 'started',
+      });
     });
   });
 });

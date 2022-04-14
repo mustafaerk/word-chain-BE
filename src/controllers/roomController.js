@@ -124,7 +124,7 @@ module.exports.quickjoin_post = async (req, res) => {
   try {
     const userToken = req.body.userToken;
     const room = await RoomModel.findOneAndUpdate({ isActive: true, isPublic: true, isStarted: false }).where({ $where: "this.users.length < this.roomSize" }).exec();
-  
+
     if (room) {
       const user = {
         id: userToken.id,
@@ -142,7 +142,7 @@ module.exports.quickjoin_post = async (req, res) => {
     } else {
       const roomId = uuidv4();
       const room = {
-        roomId, 
+        roomId,
         createDate: Date.now(),
         roomAvatarId: "1",
         ownerId: userToken.id,
@@ -166,6 +166,19 @@ module.exports.quickjoin_post = async (req, res) => {
       });
     }
 
+  } catch (err) {
+    res.statusCode = 400;
+    res.send({ status: 400, message: err });
+  }
+};
+
+module.exports.startGame_post = async (req, res) => {
+  try {
+    const { userToken, roomId } = req.body;
+    await RoomModel.findOneAndUpdate({ roomId: roomId, ownerId: userToken.id }, { isStarted: true }).exec();
+    res.statusCode = 200;
+    res.statusMessage = "Success";
+    res.send({ status: res.statusCode, message: res.statusMessage });
   } catch (err) {
     res.statusCode = 400;
     res.send({ status: 400, message: err });
