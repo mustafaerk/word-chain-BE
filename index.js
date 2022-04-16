@@ -16,7 +16,7 @@ const roomRoutes = require("./src/route/roomRoutes");
 /* ---------------------------------- */
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 const uri = process.env.MONGO_URL || "mongodb://localhost:27017/wordChainDev";
 
 app.use(bodyParser.json());
@@ -95,5 +95,15 @@ io.on("connection", function (socket) {
         status: 'started',
       });
     });
+    // User Eliminated
+    socket.on("eliminate", async function (message) {
+      socket.broadcast.to(data.roomId).emit("eliminate", { message });
+    });
+
+    // End Of The Game
+    socket.on("gameFinish", async function (message) {
+      socket.broadcast.to(data.roomId).emit("gameFinish", { message });
+    });
+
   });
 });

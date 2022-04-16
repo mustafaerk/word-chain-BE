@@ -38,18 +38,10 @@ module.exports.createRoom_post = async (req, res) => {
 module.exports.listRoom_get = async (req, res) => {
   try {
     RoomModel.find({ isActive: true, isPublic: true }, (err, rooms) => {
-      var roomMap = {};
-      rooms.forEach((room) => {
-        roomMap = {
-          roomId: room.roomId,
-          roomAvatarId: room.roomAvatarId,
-          roomName: room.roomName,
-          roomStatus: room.isStarted,
-          roomSize: room.roomSize,
-        };
-      });
-      res.send(roomMap);
-    });
+      console.log(rooms)
+      const newRoomList = rooms.map(room => { { return { currentUserLength: room.users.length, roomId: room.roomId, roomAvatarId: room.roomAvatarId, point: room.point, roomSize: room.roomSize, roomName: room.roomName, isStarted: room.isStarted } } })
+      res.send(newRoomList);
+    }).select({ "createDate": 0, "_id": 0, "isPublic": 0, "isActive": 0, "blockedUsers": 0, "words": 0, "__v": 0, "ownerId": 0, "winner": 0 });
   } catch (err) {
     res.statusCode = 400;
     res.send({ status: 400, message: err });
@@ -180,6 +172,55 @@ module.exports.startGame_post = async (req, res) => {
     res.statusMessage = "Success";
     res.send({ status: res.statusCode, message: res.statusMessage });
   } catch (err) {
+    res.statusCode = 400;
+    res.send({ status: 400, message: err });
+  }
+};
+
+module.exports.timeUp_post = async (req, res) => {
+  try {
+    const { userToken, roomId } = req.body;
+    const crrRoom = await RoomModel.findOne({ roomId: roomId }).exec();
+    const idxOfUser = crrRoom.users.findIndex(user => user.id == userToken.id);
+    crrRoom.users[idxOfUser].isEliminated = true;
+    const userNotEliminated = crrRoom.users.filter(user => !user.isEliminated)
+
+    if (userNotEliminated.length === 1) {
+      const winner = userNotEliminated.find(user => user.id !== userToken.id)
+      const newRoomIdForSave = uuidv4();
+      const currentRoomId = crrRoom.roomId;
+
+      crrRoom.roomId = newRoomIdForSave;
+      await crrRoom.save();
+
+      const newUser = crrRoom.users.map(user => { return { ...user, isEliminated: false } })
+
+      const room = {
+        roomId: currentRoomId,
+        createDate: Date.now(),
+        roomAvatarId: crrRoom.roomAvatarId,
+        ownerId: crrRoom.ownerId,
+        users: newUser,
+        roomSize: crrRoom.roomSize,
+        roomName: crrRoom.roomName,
+        isPublic: crrRoom.isPublic,
+        point: 0
+      };
+      RoomModel.create(room, () => {
+        res.statusCode = 200;
+        res.statusMessage = "Game Finish";
+        res.send({ status: res.statusCode, message: res.statusMessage, data: { winner, gameStatus: "finish" } });
+      });
+
+    } else {
+      await crrRoom.save();
+      res.statusCode = 200;
+      res.statusMessage = "eliminated";
+      res.send({ status: res.statusCode, message: res.statusMessage, data: { eliminatedUserId: userToken.id, gameStatus: "eliminated" } });
+    }
+
+  } catch (err) {
+    console.log(err)
     res.statusCode = 400;
     res.send({ status: 400, message: err });
   }

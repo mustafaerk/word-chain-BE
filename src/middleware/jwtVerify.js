@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const jwtKey = process.env.JWT_TOKEN_PUBLIC;
+const jwtKey = process.env.JWT_TOKEN_PUBLIC || "WORD_CHAIN_JWT_TOKEN";
 
 module.exports = (req, res, next) => {
     try {

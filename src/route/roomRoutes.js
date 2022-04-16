@@ -10,6 +10,7 @@ router.post('/joinRoom', verifyJwt, roomController.joinRoom_post);
 router.post('/leaveRoom', verifyJwt, roomController.leaveRoom_post);
 router.post('/quickJoin', verifyJwt, roomController.quickjoin_post);
 router.post('/startGame', verifyJwt, roomController.startGame_post);
+router.post('/timeUp', verifyJwt, roomController.timeUp_post);
 
 module.exports = router;
 
