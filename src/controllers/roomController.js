@@ -38,10 +38,32 @@ module.exports.createRoom_post = async (req, res) => {
 module.exports.listRoom_get = async (req, res) => {
   try {
     RoomModel.find({ isActive: true, isPublic: true }, (err, rooms) => {
-      console.log(rooms)
-      const newRoomList = rooms.map(room => { { return { currentUserLength: room.users.length, roomId: room.roomId, roomAvatarId: room.roomAvatarId, point: room.point, roomSize: room.roomSize, roomName: room.roomName, isStarted: room.isStarted } } })
+      console.log(rooms);
+      const newRoomList = rooms.map((room) => {
+        {
+          return {
+            currentUserLength: room.users.length,
+            roomId: room.roomId,
+            roomAvatarId: room.roomAvatarId,
+            point: room.point,
+            roomSize: room.roomSize,
+            roomName: room.roomName,
+            isStarted: room.isStarted,
+          };
+        }
+      });
       res.send(newRoomList);
-    }).select({ "createDate": 0, "_id": 0, "isPublic": 0, "isActive": 0, "blockedUsers": 0, "words": 0, "__v": 0, "ownerId": 0, "winner": 0 });
+    }).select({
+      createDate: 0,
+      _id: 0,
+      isPublic: 0,
+      isActive: 0,
+      blockedUsers: 0,
+      words: 0,
+      __v: 0,
+      ownerId: 0,
+      winner: 0,
+    });
   } catch (err) {
     res.statusCode = 400;
     res.send({ status: 400, message: err });
@@ -115,7 +137,13 @@ module.exports.leaveRoom_post = async (req, res) => {
 module.exports.quickjoin_post = async (req, res) => {
   try {
     const userToken = req.body.userToken;
-    const room = await RoomModel.findOneAndUpdate({ isActive: true, isPublic: true, isStarted: false }).where({ $where: "this.users.length < this.roomSize" }).exec();
+    const room = await RoomModel.findOneAndUpdate({
+      isActive: true,
+      isPublic: true,
+      isStarted: false,
+    })
+      .where({ $where: "this.users.length < this.roomSize" })
+      .exec();
 
     if (room) {
       const user = {
@@ -129,7 +157,12 @@ module.exports.quickjoin_post = async (req, res) => {
       await room.save(() => {
         res.statusCode = 200;
         res.statusMessage = "Success";
-        res.send({ status: res.statusCode, message: res.statusMessage, roomId: room.roomId, type: "joined" });
+        res.send({
+          status: res.statusCode,
+          message: res.statusMessage,
+          roomId: room.roomId,
+          type: "joined",
+        });
       });
     } else {
       const roomId = uuidv4();
@@ -157,7 +190,6 @@ module.exports.quickjoin_post = async (req, res) => {
         res.send({ status: res.statusCode, message: res.statusMessage });
       });
     }
-
   } catch (err) {
     res.statusCode = 400;
     res.send({ status: 400, message: err });
@@ -167,7 +199,10 @@ module.exports.quickjoin_post = async (req, res) => {
 module.exports.startGame_post = async (req, res) => {
   try {
     const { userToken, roomId } = req.body;
-    await RoomModel.findOneAndUpdate({ roomId: roomId, ownerId: userToken.id }, { isStarted: true }).exec();
+    await RoomModel.findOneAndUpdate(
+      { roomId: roomId, ownerId: userToken.id },
+      { isStarted: true }
+    ).exec();
     res.statusCode = 200;
     res.statusMessage = "Success";
     res.send({ status: res.statusCode, message: res.statusMessage });
@@ -181,19 +216,26 @@ module.exports.timeUp_post = async (req, res) => {
   try {
     const { userToken, roomId } = req.body;
     const crrRoom = await RoomModel.findOne({ roomId: roomId }).exec();
-    const idxOfUser = crrRoom.users.findIndex(user => user.id == userToken.id);
+    const idxOfUser = crrRoom.users.findIndex(
+      (user) => user.id == userToken.id
+    );
     crrRoom.users[idxOfUser].isEliminated = true;
-    const userNotEliminated = crrRoom.users.filter(user => !user.isEliminated)
+    const userNotEliminated = crrRoom.users.filter(
+      (user) => !user.isEliminated
+    );
 
     if (userNotEliminated.length === 1) {
-      const winner = userNotEliminated.find(user => user.id !== userToken.id)
+      const winner = userNotEliminated.find((user) => user.id !== userToken.id);
       const newRoomIdForSave = uuidv4();
       const currentRoomId = crrRoom.roomId;
 
       crrRoom.roomId = newRoomIdForSave;
+      crrRoom.isActive = false;
       await crrRoom.save();
 
-      const newUser = crrRoom.users.map(user => { return { ...user, isEliminated: false } })
+      const newUser = crrRoom.users.map((user) => {
+        return { ...user, isEliminated: false };
+      });
 
       const room = {
         roomId: currentRoomId,
@@ -204,24 +246,55 @@ module.exports.timeUp_post = async (req, res) => {
         roomSize: crrRoom.roomSize,
         roomName: crrRoom.roomName,
         isPublic: crrRoom.isPublic,
-        point: 0
       };
       RoomModel.create(room, () => {
         res.statusCode = 200;
         res.statusMessage = "Game Finish";
-        res.send({ status: res.statusCode, message: res.statusMessage, data: { winner, gameStatus: "finish" } });
+        res.send({
+          status: res.statusCode,
+          message: res.statusMessage,
+          data: { winner, gameStatus: "finish" },
+        });
       });
-
     } else {
       await crrRoom.save();
       res.statusCode = 200;
       res.statusMessage = "eliminated";
-      res.send({ status: res.statusCode, message: res.statusMessage, data: { eliminatedUserId: userToken.id, gameStatus: "eliminated" } });
+      res.send({
+        status: res.statusCode,
+        message: res.statusMessage,
+        data: { eliminatedUserId: userToken.id, gameStatus: "eliminated" },
+      });
     }
-
   } catch (err) {
-    console.log(err)
+    console.log(err);
     res.statusCode = 400;
     res.send({ status: 400, message: err });
   }
-};  
+};
+
+module.exports.restartGame_post = async (req, res) => {
+  try {
+    const { userToken, roomId } = req.body;
+    const crrRoom = await RoomModel.findOne({ roomId: roomId }).exec();
+    const isOwner = crrRoom.ownerId == userToken.id;
+    if (isOwner) {
+      crrRoom.isStarted = true;
+      crrRoom.save(() => {
+        res.statusCode = 200;
+        res.send({
+          data: { message: "restarted" },
+          status: 200,
+          message: "Success",
+        });
+      });
+    } else {
+      res.statusCode = 400;
+      res.send({ status: 400, message: "Go to your village!" });
+    }
+  } catch (err) {
+    console.log(err);
+    res.statusCode = 400;
+    res.send({ status: 400, message: err });
+  }
+};

@@ -12,14 +12,16 @@ var messageArea = document.querySelector("#msgArea");
 var typing = document.querySelector("#msgtyping");
 
 var leave = document.querySelector(".leave");
+var restart = document.querySelector(".restart");
+var eliminate = document.querySelector(".eliminate");
 
-button.addEventListener("click", function () {
+button.addEventListener("click", () => {
   socket.emit("joinRoom", {
     roomId: "0142f610-d5ae-484c-a5e0-0b59c8abc214",
     userId: "123",
   });
 });
-leave.addEventListener("click", function () {
+leave.addEventListener("click", () => {
   console.log("it");
   var user = {
     name: "aptal",
@@ -31,7 +33,43 @@ leave.addEventListener("click", function () {
   });
 });
 
-socket.on("gameMessage", function (data) {
+eliminate.addEventListener("click", () => {
+  postData("http://localhost:3000/timeUp", {
+    roomId: "7a2f7fda-4362-446a-a258-28f5556a8162",
+  }).then((data) => {
+    console.log(data); // JSON data parsed by `data.json()` call
+  });
+});
+
+restart.addEventListener("click", () => {
+  postData("http://localhost:3000/restartGame", {
+    roomId: "7a2f7fda-4362-446a-a258-28f5556a8162",
+  }).then((data) => {
+    console.log(data); // JSON data parsed by `data.json()` call
+  });
+});
+
+async function postData(url = "", data = {}) {
+  var bearer =
+    "Bearer " +
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdmF0YXJJZCI6MiwibmFtZSI6IjIiLCJsYW5ndWFnZSI6IjIiLCJpZCI6IjIiLCJkYXRlIjoxNjUwMTEyMzMxODAzLCJpYXQiOjE2NTAxMTIzMzF9.IrDw5uDqtTZmCgpZc5OKX_JHyD8hPgdRos6WHkxMh6U";
+  const response = await fetch(url, {
+    method: "POST", // *GET, POST, PUT, DELETE, etc.
+    mode: "cors", // no-cors, *cors, same-origin
+    cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: "same-origin", // include, *same-origin, omit
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: bearer,
+    },
+    redirect: "follow", // manual, *follow, error
+    referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+    body: JSON.stringify(data), // body data type must match "Content-Type" header
+  });
+  return response.json(); // parses JSON response into native JavaScript objects
+}
+
+socket.on("gameMessage", (data) => {
   console.log(data);
   typing.innerHTML = "";
   messageArea.innerHTML += `
@@ -40,20 +78,20 @@ socket.on("gameMessage", function (data) {
         <p>TURN INDEX:${data.nextUserIndex}</p>
     `;
 });
-socket.on("join", function (data) {
+socket.on("join", (data) => {
   console.log(data);
   messageArea.innerHTML += `
                 <p><bold>${data.userId}:</bold>Katıldı.</p>
             `;
 });
-socket.on("leave", function (data) {
+socket.on("leave", (data) => {
   console.log(data);
   messageArea.innerHTML += `
             <p><bold>${data.message.userInfo.name}:</bold>Ayrıldı.</p>
         `;
 });
 
-send.addEventListener("click", function () {
+send.addEventListener("click", () => {
   console.log("joinRoom");
   socket.emit("gameMessage", {
     action_type: "MESSAGE",
@@ -61,48 +99,3 @@ send.addEventListener("click", function () {
     roomId: "0142f610-d5ae-484c-a5e0-0b59c8abc214",
   });
 });
-
-/*message.addEventListener("keypress",function(){
-    socket.emit('typing',{
-        user: userName.value
-    });
-});
-
-send.addEventListener("click",function(){
-    socket.emit('chat',{
-        user: userName.value,
-        message: message.value
-    });
-    message.value="";
-});
-
-socket.on('matching',function(data){
-    if(data=='Wait'){
-        fuck.innerHTML=`
-        <h1>STILL WAITING FOR MATCHING</h1>
-        `;
-    }
-    else{
-        fuck.innerHTML=`
-            <h1>player1:</h1>${data.player1}
-            <h1>player2:</h1>${data.player2}
-            <h1>Room:</h1>${data.roomId}
-        `;
-    }
-   
-});
-
-socket.on('chat',function(data){
-    console.log(data.user);
-    typing.innerHTML="";
-    messageArea.innerHTML+=`
-        <p><bold>${data.user}:</bold>${data.message}</p>
-    `;
-});
-
-socket.on('typing',function(data){
-    console.log(data.user);
-    typing.innerHTML=`
-        <p><bold>${data.user}</bold> is typing</p>
-    `;
-});*/

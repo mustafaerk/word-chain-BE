@@ -92,7 +92,7 @@ io.on("connection", function (socket) {
     // Game Start
     socket.on("gameStart", async function () {
       socket.broadcast.to(data.roomId).emit("start", {
-        status: 'started',
+        status: "started",
       });
     });
     // User Eliminated
@@ -104,6 +104,9 @@ io.on("connection", function (socket) {
     socket.on("gameFinish", async function (message) {
       socket.broadcast.to(data.roomId).emit("gameFinish", { message });
     });
-
+    // Restart Game
+    socket.on("restart", async function (message) {
+      socket.broadcast.to(data.roomId).emit("restart", { message });
+    });
   });
 });
