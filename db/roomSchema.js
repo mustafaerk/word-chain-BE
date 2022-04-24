@@ -6,7 +6,7 @@ const roomSchema = new Schema({
     createDate: String,
     roomId: String,
     roomAvatarId: Number,
-    ownerId: Number,
+    ownerId: Schema.Types.Mixed,
     blockedUsers: { type: [{ name: String, id: String }], default: [] },
     users: [{
         name: String, id: String, isEliminated: Boolean, language: String, userAvatarId: Number

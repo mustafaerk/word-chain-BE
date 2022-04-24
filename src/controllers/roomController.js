@@ -38,7 +38,6 @@ module.exports.createRoom_post = async (req, res) => {
 module.exports.listRoom_get = async (req, res) => {
   try {
     RoomModel.find({ isActive: true, isPublic: true }, (err, rooms) => {
-      console.log(rooms);
       const newRoomList = rooms.map((room) => {
         {
           return {
@@ -73,30 +72,36 @@ module.exports.listRoom_get = async (req, res) => {
 module.exports.joinRoom_post = async (req, res) => {
   try {
     const { roomId, userToken } = req.body;
-    console.log(roomId, userToken, userToken);
     RoomModel.findOne({ roomId: roomId }, (err, room) => {
-      console.log(room);
-      const user = {
-        id: userToken.id,
-        name: userToken.name,
-        isEliminated: false,
-        language: userToken.language,
-        userAvatarId: userToken.avatarId,
-      };
-      const searchFindUser = (element) => element.id == user.id;
-      if (room.blockedUsers.findIndex(searchFindUser) != -1) {
-        res.send("User blocked.");
-        return;
-      }
+      if (room) {
+        const user = {
+          id: userToken.id,
+          name: userToken.name,
+          isEliminated: false,
+          language: userToken.language,
+          userAvatarId: userToken.avatarId,
+        };
+        const searchFindUser = (element) => element.id == user.id;
 
-      if (room.users.length < room.roomSize) {
-        room.users.push(user);
-        room.save(() => {
-          res.statusCode = 200;
-          res.statusMessage = "Success";
+        if (room.blockedUsers.findIndex(searchFindUser) != -1) {
+          res.send("User blocked.");
+          return;
+        }
+
+        if (room.users.length < room.roomSize) {
+          room.users.push(user);
+          room.save(() => {
+            res.statusCode = 200;
+            res.statusMessage = "Success";
+            res.send({ status: res.statusCode, message: res.statusMessage, data: { room } });
+          });
+        } else {
+          res.statusCode = 400;
+          res.statusMessage = "Room is Full";
           res.send({ status: res.statusCode, message: res.statusMessage });
-        });
-      } else {
+        }
+      }
+      else {
         res.statusCode = 400;
         res.statusMessage = "Room is Full";
         res.send({ status: res.statusCode, message: res.statusMessage });
@@ -111,10 +116,7 @@ module.exports.joinRoom_post = async (req, res) => {
 module.exports.leaveRoom_post = async (req, res) => {
   try {
     const { roomId, userToken } = req.body;
-    console.log(userToken);
-    console.log(roomId);
     RoomModel.findOne({ roomId: roomId }, (err, room) => {
-      console.log(room);
       const searchFindUser = (element) => element.id == userToken.id;
       if (room.users.findIndex(searchFindUser) != -1) {
         room.users = room.users.filter((item) => item.id !== userToken.id);
@@ -144,7 +146,6 @@ module.exports.quickjoin_post = async (req, res) => {
     })
       .where({ $where: "this.users.length < this.roomSize" })
       .exec();
-
     if (room) {
       const user = {
         id: userToken.id,
@@ -160,35 +161,43 @@ module.exports.quickjoin_post = async (req, res) => {
         res.send({
           status: res.statusCode,
           message: res.statusMessage,
-          roomId: room.roomId,
-          type: "joined",
+          data: { room, type: "joined" },
         });
       });
     } else {
-      const roomId = uuidv4();
-      const room = {
-        roomId,
-        createDate: Date.now(),
-        roomAvatarId: "1",
-        ownerId: userToken.id,
-        users: [
-          {
-            name: userToken.name,
-            id: userToken.id,
-            isEliminated: false,
-            language: userToken.language,
-            userAvatarId: userToken.avatarId,
-          },
-        ],
-        roomSize: 4,
-        roomName: `${userToken.name}'s Room`,
-        isPublic: true,
-      };
-      RoomModel.create(room, () => {
-        res.statusCode = 200;
-        res.statusMessage = "Success";
-        res.send({ status: res.statusCode, message: res.statusMessage });
-      });
+      try {
+        const roomId = uuidv4();
+        const newRoom = {
+          roomId,
+          createDate: Date.now(),
+          roomAvatarId: "1",
+          ownerId: userToken.id,
+          users: [
+            {
+              name: userToken.name,
+              id: userToken.id,
+              isEliminated: false,
+              language: userToken.language,
+              userAvatarId: userToken.avatarId,
+            },
+          ],
+          roomSize: 4,
+          roomName: `${userToken.name}'s Room`,
+          isPublic: true,
+        };
+
+        RoomModel.create(newRoom, function (err) {
+          if (err) return handleError(err);
+          res.statusCode = 200;
+          res.statusMessage = "Success";
+          res.send({ status: res.statusCode, message: res.statusMessage, data: { room: newRoom, type: "created" } });
+        });
+
+
+      } catch (err) {
+        res.statusCode = 400;
+        res.send({ status: 400, message: err });
+      }
     }
   } catch (err) {
     res.statusCode = 400;
