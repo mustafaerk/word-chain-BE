@@ -27,7 +27,7 @@ module.exports.createRoom_post = async (req, res) => {
     RoomModel.create(room, () => {
       res.statusCode = 200;
       res.statusMessage = "Success";
-      res.send({ status: res.statusCode, message: res.statusMessage });
+      res.send({ status: res.statusCode, message: res.statusMessage, data: { room } });
     });
   } catch (err) {
     res.statusCode = 400;
