@@ -1,5 +1,5 @@
 //Connection
-var socket = io.connect("http://localhost:3000");
+var socket = io.connect("http://localhost:3001");
 
 var userName = document.querySelector("#name");
 var button = document.querySelector("#send");
@@ -34,7 +34,7 @@ leave.addEventListener("click", () => {
 });
 
 eliminate.addEventListener("click", () => {
-  postData("http://localhost:3000/timeUp", {
+  postData("http://localhost:3001/timeUp", {
     roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
   }).then((data) => {
     console.log(data); // JSON data parsed by `data.json()` call
@@ -42,7 +42,7 @@ eliminate.addEventListener("click", () => {
 });
 
 restart.addEventListener("click", () => {
-  postData("http://localhost:3000/restartGame", {
+  postData("http://localhost:3001/restartGame", {
     roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
   }).then((data) => {
     console.log(data); // JSON data parsed by `data.json()` call
