@@ -59,7 +59,7 @@ io.on("connection", function (socket) {
   console.log("New user Connected");
 
   socket.on("joinRoom", async function (data) {
-    socket.join(data.roomId);
+    console.log({ data });
     socket.broadcast.to(data.roomId).emit("join", {
       ...data,
     });
@@ -84,6 +84,7 @@ io.on("connection", function (socket) {
     });
     // Leave Room
     socket.on("leave", async function (message) {
+      console.log(message);
       socket.broadcast.to(data.roomId).emit("leave", {
         message,
       });

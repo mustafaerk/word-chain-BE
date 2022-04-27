@@ -17,7 +17,7 @@ var eliminate = document.querySelector(".eliminate");
 
 button.addEventListener("click", () => {
   socket.emit("joinRoom", {
-    roomId: "0142f610-d5ae-484c-a5e0-0b59c8abc214",
+    roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
     userId: "123",
   });
 });
@@ -29,13 +29,13 @@ leave.addEventListener("click", () => {
   };
   socket.emit("leave", {
     userInfo: user,
-    roomId: "0142f610-d5ae-484c-a5e0-0b59c8abc214",
+    roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
   });
 });
 
 eliminate.addEventListener("click", () => {
   postData("http://localhost:3000/timeUp", {
-    roomId: "7a2f7fda-4362-446a-a258-28f5556a8162",
+    roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
   }).then((data) => {
     console.log(data); // JSON data parsed by `data.json()` call
   });
@@ -43,7 +43,7 @@ eliminate.addEventListener("click", () => {
 
 restart.addEventListener("click", () => {
   postData("http://localhost:3000/restartGame", {
-    roomId: "7a2f7fda-4362-446a-a258-28f5556a8162",
+    roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
   }).then((data) => {
     console.log(data); // JSON data parsed by `data.json()` call
   });
@@ -96,6 +96,6 @@ send.addEventListener("click", () => {
   socket.emit("gameMessage", {
     action_type: "MESSAGE",
     message: message.value,
-    roomId: "0142f610-d5ae-484c-a5e0-0b59c8abc214",
+    roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
   });
 });

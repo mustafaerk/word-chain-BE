@@ -17,7 +17,7 @@ module.exports.createRoom_post = async (req, res) => {
           id: userToken.id,
           isEliminated: false,
           language: userToken.language,
-          userAvatarId: userToken.avatarId,
+          userAvatarId: userToken.userAvatarId,
         },
       ],
       roomSize,
@@ -27,7 +27,11 @@ module.exports.createRoom_post = async (req, res) => {
     RoomModel.create(room, () => {
       res.statusCode = 200;
       res.statusMessage = "Success";
-      res.send({ status: res.statusCode, message: res.statusMessage, data: { room } });
+      res.send({
+        status: res.statusCode,
+        message: res.statusMessage,
+        data: { room },
+      });
     });
   } catch (err) {
     res.statusCode = 400;
@@ -79,7 +83,7 @@ module.exports.joinRoom_post = async (req, res) => {
           name: userToken.name,
           isEliminated: false,
           language: userToken.language,
-          userAvatarId: userToken.avatarId,
+          userAvatarId: userToken.userAvatarId,
         };
         const searchFindUser = (element) => element.id == user.id;
 
@@ -93,15 +97,18 @@ module.exports.joinRoom_post = async (req, res) => {
           room.save(() => {
             res.statusCode = 200;
             res.statusMessage = "Success";
-            res.send({ status: res.statusCode, message: res.statusMessage, data: { room } });
+            res.send({
+              status: res.statusCode,
+              message: res.statusMessage,
+              data: { room },
+            });
           });
         } else {
           res.statusCode = 400;
           res.statusMessage = "Room is Full";
           res.send({ status: res.statusCode, message: res.statusMessage });
         }
-      }
-      else {
+      } else {
         res.statusCode = 400;
         res.statusMessage = "Room is Full";
         res.send({ status: res.statusCode, message: res.statusMessage });
@@ -152,7 +159,7 @@ module.exports.quickjoin_post = async (req, res) => {
         name: userToken.name,
         isEliminated: false,
         language: userToken.language,
-        userAvatarId: userToken.avatarId,
+        userAvatarId: userToken.userAvatarId,
       };
       await room.users.push(user);
       await room.save(() => {
@@ -178,10 +185,11 @@ module.exports.quickjoin_post = async (req, res) => {
               id: userToken.id,
               isEliminated: false,
               language: userToken.language,
-              userAvatarId: userToken.avatarId,
+              userAvatarId: userToken.userAvatarId,
             },
           ],
-          roomSize: 4,
+          words: [],
+          roomSize: 8,
           roomName: `${userToken.name}'s Room`,
           isPublic: true,
         };
@@ -190,10 +198,12 @@ module.exports.quickjoin_post = async (req, res) => {
           if (err) return handleError(err);
           res.statusCode = 200;
           res.statusMessage = "Success";
-          res.send({ status: res.statusCode, message: res.statusMessage, data: { room: newRoom, type: "created" } });
+          res.send({
+            status: res.statusCode,
+            message: res.statusMessage,
+            data: { room: newRoom, type: "created" },
+          });
         });
-
-
       } catch (err) {
         res.statusCode = 400;
         res.send({ status: 400, message: err });

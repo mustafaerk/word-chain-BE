@@ -5,9 +5,9 @@ const jwtKey = process.env.JWT_TOKEN_PUBLIC || "WORD_CHAIN_JWT_TOKEN";
 
 module.exports.login_post = async (req, res, next) => {
     try {
-        const { avatarId, name, language, id } = req.body;
+        const { userAvatarId, name, language, id } = req.body;
 
-        const token = jwt.sign({ avatarId, name, language, id, date: Date.now() }, jwtKey);
+        const token = jwt.sign({ userAvatarId, name, language, id, date: Date.now() }, jwtKey);
 
         res.statusCode = 200;
         res.send({ status: 200, data: { token }, message: 'Success' })
