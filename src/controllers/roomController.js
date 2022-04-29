@@ -11,6 +11,7 @@ module.exports.createRoom_post = async (req, res) => {
       createDate: Date.now(),
       roomAvatarId,
       ownerId: userToken.id,
+      currentUserTurn: userToken.id,
       users: [
         {
           name: userToken.name,
@@ -156,6 +157,7 @@ module.exports.quickjoin_post = async (req, res) => {
     if (room) {
       const user = {
         id: userToken.id,
+        id: userToken.id,
         name: userToken.name,
         isEliminated: false,
         language: userToken.language,
@@ -179,6 +181,7 @@ module.exports.quickjoin_post = async (req, res) => {
           createDate: Date.now(),
           roomAvatarId: "1",
           ownerId: userToken.id,
+          currentUserTurn: userToken.id,
           users: [
             {
               name: userToken.name,
@@ -317,3 +320,4 @@ module.exports.restartGame_post = async (req, res) => {
     res.send({ status: 400, message: err });
   }
 };
+

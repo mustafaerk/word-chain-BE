@@ -7,11 +7,12 @@ const roomSchema = new Schema({
     roomId: String,
     roomAvatarId: Number,
     ownerId: Schema.Types.Mixed,
+    currentUserTurn: Schema.Types.Mixed,
     blockedUsers: { type: [{ name: String, id: String }], default: [] },
     users: [{
         name: String, id: String, isEliminated: Boolean, language: String, userAvatarId: Number
     }],
-    words: { type: [{ englishWords: String, userId: String }], default: [] },
+    words: { type: [{ word: String, ownerId: String }], default: [] },
     winner: { type: { name: String, userId: String }, default: {} },
     point: { type: Number, default: 0 },
     roomSize: Number,

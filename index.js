@@ -9,6 +9,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 var socket = require("socket.io");
+const RoomModel = require("./db/roomSchema");
 
 const authRoutes = require("./src/route/authRoutes");
 const roomRoutes = require("./src/route/roomRoutes");
@@ -67,22 +68,34 @@ io.on("connection", function (socket) {
     // TODO: Find next user Id and send with data : DONE
     // TODO: Add words to DB
     socket.on("gameMessage", async function (message) {
+
       switch (message.action_type) {
         case "MESSAGE":
-          const clients = io.sockets.adapter.rooms.get(data.roomId);
-          const usersArray = [...clients];
-          const index = usersArray.indexOf(socket.id);
-          const nextIndex = usersArray.length - 1 > index ? index + 1 : 0;
-          const nextUser = usersArray[nextIndex];
+          try {
+            const room = await RoomModel.findOneAndUpdate(
+              { roomId: message.roomId },
+              { $push: { words: message.message } },
+            );
+            let nextUserId = null;
+            const nextUserIdx = room.users.findIndex(user => user.id == message.message.ownerId);
 
-          io.in(message.roomId).emit("gameMessage", {
-            message,
-            nextUserId: nextUser,
-            nextUserIndex: nextIndex,
-          });
+            if (nextUserIdx == room.users.length - 1) {
+              nextUserId = room.users[0].id
+            } else {
+              nextUserId = room.users[nextUserIdx + 1].id
+            }
+
+            io.in(message.roomId).emit("gameMessage", {
+              message,
+              nextUserId
+            });
+          } catch (error) {
+            console.log(error)
+          }
           break;
       }
     });
+
     // Leave Room
     socket.on("leave", async function (message) {
       console.log(message);
@@ -91,12 +104,14 @@ io.on("connection", function (socket) {
       });
       socket.leave(message.roomId);
     });
+
     // Game Start
     socket.on("gameStart", async function () {
       socket.broadcast.to(data.roomId).emit("start", {
         status: "started",
       });
     });
+
     // User Eliminated
     socket.on("eliminate", async function (message) {
       socket.broadcast.to(data.roomId).emit("eliminate", { message });
@@ -106,6 +121,7 @@ io.on("connection", function (socket) {
     socket.on("gameFinish", async function (message) {
       socket.broadcast.to(data.roomId).emit("gameFinish", { message });
     });
+
     // Restart Game
     socket.on("restart", async function (message) {
       socket.broadcast.to(data.roomId).emit("restart", { message });
