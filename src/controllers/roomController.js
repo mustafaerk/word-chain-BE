@@ -163,6 +163,7 @@ module.exports.quickjoin_post = async (req, res) => {
         isEliminated: false,
         language: userToken.language,
         userAvatarId: userToken.userAvatarId,
+        isRoomStarted: false,
       };
       await room.users.push(user);
       await room.save(() => {

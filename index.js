@@ -61,7 +61,6 @@ io.on("connection", function (socket) {
 
   socket.on("joinRoom", async function (data) {
     socket.join(data.roomId);
-    console.log({ data });
     socket.broadcast.to(data.roomId).emit("join", {
       ...data,
     });
@@ -98,19 +97,17 @@ io.on("connection", function (socket) {
 
     // Leave Room
     socket.on("leave", async function (message) {
-      console.log(message);
       socket.broadcast.to(data.roomId).emit("leave", {
         message,
       });
       socket.leave(message.roomId);
     });
 
-    // Game Start
-    socket.on("gameStart", async function () {
-      socket.broadcast.to(data.roomId).emit("start", {
-        status: "started",
-      });
+    // Game Start 
+    socket.on("start", async function (message) {
+      io.in(data.roomId).emit("start", { message });
     });
+
 
     // User Eliminated
     socket.on("eliminate", async function (message) {
