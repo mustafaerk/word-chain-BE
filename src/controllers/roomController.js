@@ -21,6 +21,7 @@ module.exports.createRoom_post = async (req, res) => {
           userAvatarId: userToken.userAvatarId,
         },
       ],
+      words: [],
       roomSize,
       roomName,
       isPublic,
