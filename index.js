@@ -54,7 +54,7 @@ var server = app.listen(PORT, () => {
   console.log(PORT, "Sunucu çalışıyor...");
 });
 
-const io = socket(server);
+const io = socket(server, {cors: {origin: "*"}});
 
 io.on("connection", function (socket) {
   console.log("New user Connected");
@@ -77,12 +77,12 @@ io.on("connection", function (socket) {
               { $push: { words: message.message } },
             );
             let nextUserId = null;
-            const nextUserIdx = room.users.findIndex(user => user.id == message.message.ownerId);
+            const currentUserIdx = room.users.findIndex(user => user.id == message.message.ownerId);
 
-            if (nextUserIdx == room.users.length - 1) {
+            if (currentUserIdx == room.users.length - 1) {
               nextUserId = room.users[0].id
             } else {
-              nextUserId = room.users[nextUserIdx + 1].id
+              nextUserId = room.users[currentUserIdx + 1].id
             }
 
             io.in(message.roomId).emit("gameMessage", {
