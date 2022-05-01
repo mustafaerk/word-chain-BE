@@ -10,6 +10,7 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 var socket = require("socket.io");
 const RoomModel = require("./db/roomSchema");
+var cors = require('cors')
 
 const authRoutes = require("./src/route/authRoutes");
 const roomRoutes = require("./src/route/roomRoutes");
@@ -17,9 +18,9 @@ const roomRoutes = require("./src/route/roomRoutes");
 /* ---------------------------------- */
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-const uri = process.env.MONGO_URL || "mongodb://localhost:27017/wordChainDev";
-
+const PORT = process.env.PORT || 5001;
+const uri = process.env.MONGO_URL || "mongodb+srv://word-chain:b0LRFzOfjbCoXkVO@cluster0.gisn7.mongodb.net/word-chain?retryWrites=true&w=majority";
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 /* Disable Cors */
@@ -47,6 +48,10 @@ mongoose.connect(uri, {
 });
 /* ---------------------------------- */
 
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
 app.use(authRoutes);
 app.use(roomRoutes);
 
@@ -61,7 +66,6 @@ io.on("connection", function (socket) {
 
   socket.on("joinRoom", async function (data) {
     socket.join(data.roomId);
-    console.log({ data });
     socket.broadcast.to(data.roomId).emit("join", {
       ...data,
     });
@@ -76,13 +80,18 @@ io.on("connection", function (socket) {
               { roomId: message.roomId },
               { $push: { words: message.message } },
             );
-            let nextUserId = null;
-            const currentUserIdx = room.users.findIndex(user => user.id == message.message.ownerId);
+            const userList = [...room.users];
 
-            if (currentUserIdx == room.users.length - 1) {
-              nextUserId = room.users[0].id
+            const clearUserList = userList.filter(user => !user.isEliminated);
+
+            const userIdx = clearUserList.findIndex(user => user.id == message.message.ownerId);
+
+            let nextUserId = null;
+
+            if (userIdx == clearUserList.length - 1) {
+              nextUserId = clearUserList[0].id
             } else {
-              nextUserId = room.users[currentUserIdx + 1].id
+              nextUserId = clearUserList[userIdx + 1].id
             }
 
             io.in(message.roomId).emit("gameMessage", {
@@ -98,33 +107,32 @@ io.on("connection", function (socket) {
 
     // Leave Room
     socket.on("leave", async function (message) {
-      console.log(message);
       socket.broadcast.to(data.roomId).emit("leave", {
         message,
       });
       socket.leave(message.roomId);
     });
 
-    // Game Start
-    socket.on("gameStart", async function () {
-      socket.broadcast.to(data.roomId).emit("start", {
-        status: "started",
-      });
+    // Game Start 
+    socket.on("start", async function (message) {
+      io.in(data.roomId).emit("start", { message });
     });
+
 
     // User Eliminated
     socket.on("eliminate", async function (message) {
-      socket.broadcast.to(data.roomId).emit("eliminate", { message });
+      console.log(message)
+      io.in(data.roomId).emit("eliminate", { message });
     });
 
     // End Of The Game
     socket.on("gameFinish", async function (message) {
-      socket.broadcast.to(data.roomId).emit("gameFinish", { message });
+      io.in(data.roomId).emit("gameFinish", { message });
     });
 
     // Restart Game
     socket.on("restart", async function (message) {
-      socket.broadcast.to(data.roomId).emit("restart", { message });
+      io.in(data.roomId).emit("restart", { message });
     });
   });
 });

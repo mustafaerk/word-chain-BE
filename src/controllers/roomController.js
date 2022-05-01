@@ -148,14 +148,15 @@ module.exports.leaveRoom_post = async (req, res) => {
 module.exports.quickjoin_post = async (req, res) => {
   try {
     const userToken = req.body.userToken;
-    const room = await RoomModel.findOneAndUpdate({
+    const rooms = await RoomModel.find({
       isActive: true,
       isPublic: true,
       isStarted: false,
     })
-      .where({ $where: "this.users.length < this.roomSize" })
       .exec();
-    if (room) {
+    const avaibleRoom = rooms?.find(room => room.users.length < room.roomSize);
+
+    if (avaibleRoom) {
       const user = {
         id: userToken.id,
         id: userToken.id,
@@ -163,15 +164,16 @@ module.exports.quickjoin_post = async (req, res) => {
         isEliminated: false,
         language: userToken.language,
         userAvatarId: userToken.userAvatarId,
+        isRoomStarted: false,
       };
-      await room.users.push(user);
-      await room.save(() => {
+      await avaibleRoom.users.push(user);
+      await avaibleRoom.save(() => {
         res.statusCode = 200;
         res.statusMessage = "Success";
         res.send({
           status: res.statusCode,
           message: res.statusMessage,
-          data: { room, type: "joined" },
+          data: { room: avaibleRoom, type: "joined" },
         });
       });
     } else {
@@ -209,6 +211,7 @@ module.exports.quickjoin_post = async (req, res) => {
           });
         });
       } catch (err) {
+        console.log(err)
         res.statusCode = 400;
         res.send({ status: 400, message: err });
       }
@@ -224,7 +227,7 @@ module.exports.startGame_post = async (req, res) => {
     const { userToken, roomId } = req.body;
     await RoomModel.findOneAndUpdate(
       { roomId: roomId, ownerId: userToken.id },
-      { isStarted: true }
+      { isStarted: true, isActive: false }
     ).exec();
     res.statusCode = 200;
     res.statusMessage = "Success";
@@ -242,6 +245,10 @@ module.exports.timeUp_post = async (req, res) => {
     const idxOfUser = crrRoom.users.findIndex(
       (user) => user.id == userToken.id
     );
+    const userList = [...crrRoom.users];
+
+    const clearUserList = userList.filter(user => !user.isEliminated)
+
     crrRoom.users[idxOfUser].isEliminated = true;
     const userNotEliminated = crrRoom.users.filter(
       (user) => !user.isEliminated
@@ -280,13 +287,24 @@ module.exports.timeUp_post = async (req, res) => {
         });
       });
     } else {
+      const userIdx = userList.findIndex(user => user.id == userToken.id);
+
+      let nextUserId = null;
+
+      if (userIdx == clearUserList.length - 1) {
+        nextUserId = clearUserList[0].id
+      } else {
+        nextUserId = clearUserList[userIdx + 1].id
+      }
+
+      crrRoom.currentUserTurn = nextUserId
       await crrRoom.save();
       res.statusCode = 200;
       res.statusMessage = "eliminated";
       res.send({
         status: res.statusCode,
         message: res.statusMessage,
-        data: { eliminatedUserId: userToken.id, gameStatus: "eliminated" },
+        data: { eliminatedUserId: userToken.id, nextUserId: nextUserId, gameStatus: "eliminated" },
       });
     }
   } catch (err) {
