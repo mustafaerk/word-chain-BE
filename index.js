@@ -10,6 +10,7 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 var socket = require("socket.io");
 const RoomModel = require("./db/roomSchema");
+var cors = require('cors')
 
 const authRoutes = require("./src/route/authRoutes");
 const roomRoutes = require("./src/route/roomRoutes");
@@ -19,7 +20,7 @@ const roomRoutes = require("./src/route/roomRoutes");
 const app = express();
 const PORT = process.env.PORT || 5001;
 const uri = process.env.MONGO_URL || "mongodb+srv://word-chain:b0LRFzOfjbCoXkVO@cluster0.gisn7.mongodb.net/word-chain?retryWrites=true&w=majority";
-
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 /* Disable Cors */
