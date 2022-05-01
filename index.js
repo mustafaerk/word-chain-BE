@@ -47,6 +47,10 @@ mongoose.connect(uri, {
 });
 /* ---------------------------------- */
 
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
 app.use(authRoutes);
 app.use(roomRoutes);
 
