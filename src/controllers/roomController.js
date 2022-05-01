@@ -154,7 +154,7 @@ module.exports.quickjoin_post = async (req, res) => {
       isStarted: false,
     })
       .exec();
-      const avaibleRoom = rooms?.find(room => room.users.length < room.roomSize);
+    const avaibleRoom = rooms?.find(room => room.users.length < room.roomSize);
 
     if (avaibleRoom) {
       const user = {
@@ -173,7 +173,7 @@ module.exports.quickjoin_post = async (req, res) => {
         res.send({
           status: res.statusCode,
           message: res.statusMessage,
-          data: { room:avaibleRoom, type: "joined" },
+          data: { room: avaibleRoom, type: "joined" },
         });
       });
     } else {
@@ -227,7 +227,7 @@ module.exports.startGame_post = async (req, res) => {
     const { userToken, roomId } = req.body;
     await RoomModel.findOneAndUpdate(
       { roomId: roomId, ownerId: userToken.id },
-      { isStarted: true }
+      { isStarted: true, isActive: false }
     ).exec();
     res.statusCode = 200;
     res.statusMessage = "Success";
@@ -245,6 +245,10 @@ module.exports.timeUp_post = async (req, res) => {
     const idxOfUser = crrRoom.users.findIndex(
       (user) => user.id == userToken.id
     );
+    const userList = [...crrRoom.users];
+
+    const clearUserList = userList.filter(user => !user.isEliminated)
+
     crrRoom.users[idxOfUser].isEliminated = true;
     const userNotEliminated = crrRoom.users.filter(
       (user) => !user.isEliminated
@@ -283,13 +287,24 @@ module.exports.timeUp_post = async (req, res) => {
         });
       });
     } else {
+      const userIdx = userList.findIndex(user => user.id == userToken.id);
+
+      let nextUserId = null;
+
+      if (userIdx == clearUserList.length - 1) {
+        nextUserId = clearUserList[0].id
+      } else {
+        nextUserId = clearUserList[userIdx + 1].id
+      }
+
+      crrRoom.currentUserTurn = nextUserId
       await crrRoom.save();
       res.statusCode = 200;
       res.statusMessage = "eliminated";
       res.send({
         status: res.statusCode,
         message: res.statusMessage,
-        data: { eliminatedUserId: userToken.id, gameStatus: "eliminated" },
+        data: { eliminatedUserId: userToken.id, nextUserId: nextUserId, gameStatus: "eliminated" },
       });
     }
   } catch (err) {

@@ -79,13 +79,18 @@ io.on("connection", function (socket) {
               { roomId: message.roomId },
               { $push: { words: message.message } },
             );
-            let nextUserId = null;
-            const nextUserIdx = room.users.findIndex(user => user.id == message.message.ownerId);
+            const userList = [...room.users];
 
-            if (nextUserIdx == room.users.length - 1) {
-              nextUserId = room.users[0].id
+            const clearUserList = userList.filter(user => !user.isEliminated);
+
+            const userIdx = clearUserList.findIndex(user => user.id == message.message.ownerId);
+
+            let nextUserId = null;
+
+            if (userIdx == clearUserList.length - 1) {
+              nextUserId = clearUserList[0].id
             } else {
-              nextUserId = room.users[nextUserIdx + 1].id
+              nextUserId = clearUserList[userIdx + 1].id
             }
 
             io.in(message.roomId).emit("gameMessage", {
@@ -115,17 +120,18 @@ io.on("connection", function (socket) {
 
     // User Eliminated
     socket.on("eliminate", async function (message) {
-      socket.broadcast.to(data.roomId).emit("eliminate", { message });
+      console.log(message)
+      io.in(data.roomId).emit("eliminate", { message });
     });
 
     // End Of The Game
     socket.on("gameFinish", async function (message) {
-      socket.broadcast.to(data.roomId).emit("gameFinish", { message });
+      io.in(data.roomId).emit("gameFinish", { message });
     });
 
     // Restart Game
     socket.on("restart", async function (message) {
-      socket.broadcast.to(data.roomId).emit("restart", { message });
+      io.in(data.roomId).emit("restart", { message });
     });
   });
 });
