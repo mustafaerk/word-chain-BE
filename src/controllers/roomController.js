@@ -148,14 +148,15 @@ module.exports.leaveRoom_post = async (req, res) => {
 module.exports.quickjoin_post = async (req, res) => {
   try {
     const userToken = req.body.userToken;
-    const room = await RoomModel.findOneAndUpdate({
+    const rooms = await RoomModel.find({
       isActive: true,
       isPublic: true,
       isStarted: false,
     })
-      .where({ $where: "this.users.length < this.roomSize" })
       .exec();
-    if (room) {
+      const avaibleRoom = rooms?.find(room => room.users.length < room.roomSize);
+
+    if (avaibleRoom) {
       const user = {
         id: userToken.id,
         id: userToken.id,
@@ -165,14 +166,14 @@ module.exports.quickjoin_post = async (req, res) => {
         userAvatarId: userToken.userAvatarId,
         isRoomStarted: false,
       };
-      await room.users.push(user);
-      await room.save(() => {
+      await avaibleRoom.users.push(user);
+      await avaibleRoom.save(() => {
         res.statusCode = 200;
         res.statusMessage = "Success";
         res.send({
           status: res.statusCode,
           message: res.statusMessage,
-          data: { room, type: "joined" },
+          data: { room:avaibleRoom, type: "joined" },
         });
       });
     } else {
@@ -210,6 +211,7 @@ module.exports.quickjoin_post = async (req, res) => {
           });
         });
       } catch (err) {
+        console.log(err)
         res.statusCode = 400;
         res.send({ status: 400, message: err });
       }
