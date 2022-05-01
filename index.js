@@ -17,7 +17,7 @@ const roomRoutes = require("./src/route/roomRoutes");
 /* ---------------------------------- */
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
 const uri = process.env.MONGO_URL || "mongodb://localhost:27017/wordChainDev";
 
 app.use(bodyParser.json());
