@@ -16,6 +16,7 @@ module.exports.createRoom_post = async (req, res) => {
         {
           name: userToken.name,
           id: userToken.id,
+          number: 0,
           isEliminated: false,
           language: userToken.language,
           userAvatarId: userToken.userAvatarId,
@@ -84,6 +85,7 @@ module.exports.joinRoom_post = async (req, res) => {
           id: userToken.id,
           name: userToken.name,
           isEliminated: false,
+          number: 0,
           language: userToken.language,
           userAvatarId: userToken.userAvatarId,
         };
@@ -192,6 +194,7 @@ module.exports.quickjoin_post = async (req, res) => {
               isEliminated: false,
               language: userToken.language,
               userAvatarId: userToken.userAvatarId,
+              point:0,
             },
           ],
           words: [],
