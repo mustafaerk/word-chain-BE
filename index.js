@@ -59,7 +59,7 @@ var server = app.listen(PORT, () => {
   console.log(PORT, "Sunucu çalışıyor...");
 });
 
-const io = socket(server, {cors: {origin: "*"}});
+const io = socket(server, { cors: { origin: "*" } });
 
 io.on("connection", function (socket) {
   console.log("New user Connected");
@@ -80,6 +80,13 @@ io.on("connection", function (socket) {
               { roomId: message.roomId },
               { $push: { words: message.message } },
             );
+            const idxOfUser = room.users.findIndex(
+              (user) => user.id == message.message.ownerId
+            );
+            const pointOfWord = message.message?.word?.length || 0
+            room.users[idxOfUser].point = pointOfWord;
+            await room.save();
+            console.log(message.message)
             const userList = [...room.users];
 
             const clearUserList = userList.filter(user => !user.isEliminated);
@@ -96,7 +103,9 @@ io.on("connection", function (socket) {
 
             io.in(message.roomId).emit("gameMessage", {
               message,
-              nextUserId
+              nextUserId,
+              point: pointOfWord,
+              userList
             });
           } catch (error) {
             console.log(error)
