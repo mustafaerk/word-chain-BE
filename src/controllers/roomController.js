@@ -128,17 +128,19 @@ module.exports.leaveRoom_post = async (req, res) => {
   try {
     const { roomId, userToken } = req.body;
     RoomModel.findOne({ roomId: roomId }, (err, room) => {
-      const searchFindUser = (element) => element.id == userToken.id;
-      if (room.users.findIndex(searchFindUser) != -1) {
-        room.users = room.users.filter((item) => item.id !== userToken.id);
-        if (room.users.length == 0) {
-          room.isActive = false;
+      if (room) {
+        const searchFindUser = (element) => element.id == userToken.id;
+        if (room.users.findIndex(searchFindUser) != -1) {
+          room.users = room.users.filter((item) => item.id !== userToken.id);
+          if (room.users.length == 0) {
+            room.isActive = false;
+          }
+          room.save(() => {
+            res.statusCode = 200;
+            res.statusMessage = "Success";
+            res.send({ status: res.statusCode, message: res.statusMessage });
+          });
         }
-        room.save(() => {
-          res.statusCode = 200;
-          res.statusMessage = "Success";
-          res.send({ status: res.statusCode, message: res.statusMessage });
-        });
       }
     });
   } catch (err) {
@@ -161,13 +163,12 @@ module.exports.quickjoin_post = async (req, res) => {
     if (avaibleRoom) {
       const user = {
         id: userToken.id,
-        id: userToken.id,
         name: userToken.name,
         isEliminated: false,
         language: userToken.language,
         userAvatarId: userToken.userAvatarId,
-        isRoomStarted: false,
       };
+
       await avaibleRoom.users.push(user);
       await avaibleRoom.save(() => {
         res.statusCode = 200;
@@ -194,7 +195,7 @@ module.exports.quickjoin_post = async (req, res) => {
               isEliminated: false,
               language: userToken.language,
               userAvatarId: userToken.userAvatarId,
-              point:0,
+              point: 0,
             },
           ],
           words: [],
