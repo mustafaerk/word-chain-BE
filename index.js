@@ -80,6 +80,12 @@ io.on("connection", function (socket) {
               { roomId: message.roomId },
               { $push: { words: message.message } },
             );
+            const idxOfUser = room.users.findIndex(
+              (user) => user.id == message.message.ownerId
+            );
+            room.users[idxOfUser].point = 15;
+            await room.save();
+            console.log(message.message)
             const userList = [...room.users];
 
             const clearUserList = userList.filter(user => !user.isEliminated);
@@ -96,7 +102,8 @@ io.on("connection", function (socket) {
 
             io.in(message.roomId).emit("gameMessage", {
               message,
-              nextUserId
+              nextUserId,
+              userList
             });
           } catch (error) {
             console.log(error)

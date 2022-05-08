@@ -16,7 +16,7 @@ const roomSchema = new Schema({
       isEliminated: Boolean,
       language: String,
       userAvatarId: Number,
-      point: Number,
+      point: { type: Number, default: 0 }
     },
   ],
   words: { type: [{ word: String, ownerId: String }], default: [] },
