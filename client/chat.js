@@ -2,7 +2,7 @@
 var socket = io.connect("http://localhost:3001");
 
 var userName = document.querySelector("#name");
-var button = document.querySelector("#send");
+var button = document.querySelector("#join");
 var fuck = document.querySelector("#fuck");
 
 var message = document.querySelector("#message");
@@ -12,30 +12,28 @@ var messageArea = document.querySelector("#msgArea");
 var typing = document.querySelector("#msgtyping");
 
 var leave = document.querySelector(".leave");
+var start = document.querySelector("#start");
 var restart = document.querySelector(".restart");
 var eliminate = document.querySelector(".eliminate");
 
-button.addEventListener("click", () => {
-  socket.emit("joinRoom", {
-    roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
-    userId: "123",
+join.addEventListener("click", () => {
+  socket.emit("join", {
+    roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
+    user: { avatarId: "1", name: "hebele", id: "123" },
   });
 });
+
+start.addEventListener("click", () => {
+  socket.emit("start");
+});
+
 leave.addEventListener("click", () => {
-  console.log("it");
-  var user = {
-    name: "aptal",
-    id: "1",
-  };
-  socket.emit("leave", {
-    userInfo: user,
-    roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
-  });
+  socket.emit("leave", '');
 });
 
 eliminate.addEventListener("click", () => {
   postData("http://localhost:3001/timeUp", {
-    roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
+    roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
   }).then((data) => {
     console.log(data); // JSON data parsed by `data.json()` call
   });
@@ -43,7 +41,7 @@ eliminate.addEventListener("click", () => {
 
 restart.addEventListener("click", () => {
   postData("http://localhost:3001/restartGame", {
-    roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
+    roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
   }).then((data) => {
     console.log(data); // JSON data parsed by `data.json()` call
   });
@@ -90,12 +88,16 @@ socket.on("leave", (data) => {
             <p><bold>${data.message.userInfo.name}:</bold>Ayrıldı.</p>
         `;
 });
+socket.on("room’", (room) => {
+  console.log({ room });
+
+});
 
 send.addEventListener("click", () => {
   console.log("joinRoom");
   socket.emit("gameMessage", {
     action_type: "MESSAGE",
     message: message.value,
-    roomId: "b69c8160-cbd2-46b0-9193-b1baa492edad",
+    roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
   });
 });
