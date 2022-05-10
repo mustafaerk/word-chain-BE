@@ -411,7 +411,7 @@ io.on("connection", function (socket) {
         isStarted: false,
       };
       RoomModel.create(newRoom, () => {
-        socket.emit("createdRoom", newRoom);
+        socket.emit("room", newRoom);
       });
     } catch (error) {
       console.log(error);
