@@ -28,7 +28,7 @@ start.addEventListener("click", () => {
 });
 
 leave.addEventListener("click", () => {
-  socket.emit("leave", '');
+  socket.emit("leave", "");
 });
 
 eliminate.addEventListener("click", () => {
@@ -76,6 +76,7 @@ socket.on("gameMessage", (data) => {
         <p>TURN INDEX:${data.nextUserIndex}</p>
     `;
 });
+
 socket.on("join", (data) => {
   console.log(data);
   messageArea.innerHTML += `
@@ -90,14 +91,34 @@ socket.on("leave", (data) => {
 });
 socket.on("room’", (room) => {
   console.log({ room });
-
+});
+socket.on("createdRoom", (room) => {
+  console.log({ room });
 });
 
 send.addEventListener("click", () => {
   console.log("joinRoom");
-  socket.emit("gameMessage", {
-    action_type: "MESSAGE",
-    message: message.value,
-    roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
+  socket.emit("createRoom", {
+    room: {
+      roomAvatarId: 1,
+      roomSize: 8,
+      roomName: "sasa's Room",
+      isPublic: true,
+      isActive: true,
+      isStarted: false,
+    },
+    user: {
+      name: "asas",
+      id: "e5b60e92-3c2f-4b75-b50c-5610eacb05cb",
+      isEliminated: false,
+      language: "tr",
+      userAvatarId: 8,
+      point: 15,
+    },
   });
+  // socket.emit("gameMessage", {
+  //   action_type: "MESSAGE",
+  //   message: message.value,
+  //   roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
+  // });
 });
