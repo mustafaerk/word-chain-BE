@@ -89,33 +89,51 @@ socket.on("leave", (data) => {
             <p><bold>${data.message.userInfo.name}:</bold>Ayrıldı.</p>
         `;
 });
-socket.on("room’", (room) => {
-  console.log({ room });
+const user = {
+  name: "asas",
+  id: "e5b60e92-3c2f-4b75-b50c-5610eacb05cb",
+  isEliminated: false,
+  language: "tr",
+  userAvatarId: 8,
+  point: 15,
+};
+socket.on("notJoined", (data) => {
+  console.log(data);
 });
+socket.on("room", (room) => {
+  console.log({ room });
+  socket.emit("join", { roomId: room.roomId, user });
+});
+
 socket.on("createdRoom", (room) => {
   console.log({ room });
 });
 
 send.addEventListener("click", () => {
   console.log("joinRoom");
-  socket.emit("createRoom", {
-    room: {
-      roomAvatarId: 1,
-      roomSize: 8,
-      roomName: "sasa's Room",
-      isPublic: true,
-      isActive: true,
-      isStarted: false,
-    },
-    user: {
-      name: "asas",
-      id: "e5b60e92-3c2f-4b75-b50c-5610eacb05cb",
-      isEliminated: false,
-      language: "tr",
-      userAvatarId: 8,
-      point: 15,
-    },
+  // socket.emit("createRoom", {
+  //   room: {
+  //     roomAvatarId: 1,
+  //     roomSize: 8,
+  //     roomName: "sasa's Room",
+  //     isPublic: true,
+  //     isActive: true,
+  //     isStarted: false,
+  //   },
+  //   user: {
+  //     name: "asas",
+  //     id: "e5b60e92-3c2f-4b75-b50c-5610eacb05cb",
+  //     isEliminated: false,
+  //     language: "tr",
+  //     userAvatarId: 8,
+  //     point: 15,
+  //   },
+  // });
+
+  socket.emit("reconnect", {
+    roomId: "5c707893-02b9-40f1-abfb-bb603daffde2",
   });
+
   // socket.emit("gameMessage", {
   //   action_type: "MESSAGE",
   //   message: message.value,

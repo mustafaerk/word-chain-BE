@@ -20,8 +20,9 @@ const roomRoutes = require("./src/route/roomRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-const uri = process.env.MONGO_URL ||
-"mongodb+srv://word-chain:b0LRFzOfjbCoXkVO@cluster0.gisn7.mongodb.net/word-chain?retryWrites=true&w=majority";
+const uri =
+  process.env.MONGO_URL ||
+  "mongodb+srv://word-chain:b0LRFzOfjbCoXkVO@cluster0.gisn7.mongodb.net/word-chain?retryWrites=true&w=majority";
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -147,15 +148,35 @@ io.on("connection", function (socket) {
     });
   });
 
+  socket.on("reconnect", async function (data) {
+    try {
+      const room = await RoomModel.findOne({
+        roomId: data.roomId,
+      });
+      if (!room) {
+        socket.emit("notJoined", { message: "RoomIsNotExist" });
+        return true;
+      }
+      if (room.users.length == room.roomSize) {
+        socket.emit("notJoined", { message: "RoomFull" });
+        return true;
+      }
+      socket.emit("room", room);
+    } catch (error) {
+      console.log(error);
+    }
+  });
+
   socket.on("quickJoin", async function (data) {
     try {
       const rooms = await RoomModel.find({
         isActive: true,
         isPublic: true,
         isStarted: false,
-      })
-        .exec();
-      const avaibleRoom = rooms?.find(room => room.users.length < room.roomSize);
+      }).exec();
+      const avaibleRoom = rooms?.find(
+        (room) => room.users.length < room.roomSize
+      );
 
       if (avaibleRoom) {
         const user = {
@@ -168,7 +189,7 @@ io.on("connection", function (socket) {
 
         await avaibleRoom.users.push(user);
         await avaibleRoom.save(() => {
-          socket.emit('room', avaibleRoom);
+          socket.emit("room", avaibleRoom);
         });
       } else {
         try {
@@ -196,22 +217,18 @@ io.on("connection", function (socket) {
           };
 
           await RoomModel.create(newRoom);
-          socket.emit('room', newRoom);
-
+          socket.emit("room", newRoom);
         } catch (err) {
-          console.log({ err, message: 'creatingRoom-quickJoin' })
+          console.log({ err, message: "creatingRoom-quickJoin" });
         }
       }
     } catch (err) {
-      console.log({ err, message: 'creatingRoom-quickJoin' })
-
+      console.log({ err, message: "creatingRoom-quickJoin" });
     }
   });
 
-  socket.on('join', async function (data) {
-    const room = await RoomModel.findOne(
-      { roomId: data.roomId },
-    );
+  socket.on("join", async function (data) {
+    const room = await RoomModel.findOne({ roomId: data.roomId });
     try {
       if (!room) return true;
       if (room.users.length == room.roomSize) {
@@ -240,27 +257,29 @@ io.on("connection", function (socket) {
       }
     });
 
-
     // Time up
     socket.on("timeUp", async function () {
       room.users = room.users.map((user) => ({
         ...user,
-        isEliminate: user.id == data.user.id ? true : user.isEliminate
+        isEliminate: user.id == data.user.id ? true : user.isEliminate,
       }));
       room.save();
-      const clearUserList = room.users.filter(user => !user.isEliminated)
+      const clearUserList = room.users.filter((user) => !user.isEliminated);
 
       io.in(data.roomId).emit("eliminate", data.user);
 
       if (clearUserList.length > 1) {
         const index = room.users.findIndex((user) => user.id === 2);
-        const nextUser = room.users.slice(index + 1, room.users.length).find((user) => !user.isElimated);
+        const nextUser = room.users
+          .slice(index + 1, room.users.length)
+          .find((user) => !user.isElimated);
         if (nextUser) {
           room.currentUserTurn = nextUser.id;
           io.in(data.roomId).emit("turn", nextUser.id);
-        }
-        else {
-          const nextUserInfoFromBegin = room.users.find((user) => !user.isElimated);
+        } else {
+          const nextUserInfoFromBegin = room.users.find(
+            (user) => !user.isElimated
+          );
           room.currentUserTurn = nextUserInfoFromBegin.id;
           io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
         }
@@ -271,11 +290,15 @@ io.on("connection", function (socket) {
         room.roomId = newRoomIdForSave;
         room.isActive = false;
         room.winner = winner;
-        io.in(data.roomId).emit("winner’", winner);
+        io.in(data.roomId).emit("winner", winner);
 
         await room.save();
 
-        const newUser = room.users.map((user) => ({ ...user, isEliminated: false, point: 0 }));
+        const newUser = room.users.map((user) => ({
+          ...user,
+          isEliminated: false,
+          point: 0,
+        }));
 
         const newRoom = {
           roomId: currentRoomId,
@@ -298,7 +321,7 @@ io.on("connection", function (socket) {
       }
     });
 
-    // Leave the Game 
+    // Leave the Game
     socket.on("leave", async function () {
       const newUserList = room.users.filter((user) => user.id != data.user.id);
       room.users = newUserList;
@@ -312,13 +335,16 @@ io.on("connection", function (socket) {
       if (clearUserList.length > 1) {
         if (room.currentUserTurn == data.user.id) {
           const index = room.users.findIndex((user) => user.id === 2);
-          const nextUser = room.users.slice(index + 1, room.users.length).find((user) => !user.isElimated);
+          const nextUser = room.users
+            .slice(index + 1, room.users.length)
+            .find((user) => !user.isElimated);
           if (nextUser) {
             room.currentUserTurn = nextUser.id;
             io.in(data.roomId).emit("turn", nextUser.id);
-          }
-          else {
-            const nextUserInfoFromBegin = room.users.find((user) => !user.isElimated);
+          } else {
+            const nextUserInfoFromBegin = room.users.find(
+              (user) => !user.isElimated
+            );
             room.currentUserTurn = nextUserInfoFromBegin.id;
             io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
           }
@@ -332,7 +358,7 @@ io.on("connection", function (socket) {
         room.roomId = newRoomIdForSave;
         room.isActive = false;
         room.winner = winner;
-        io.in(data.roomId).emit("winner’", winner);
+        io.in(data.roomId).emit("winner", winner);
 
         await room.save();
 
