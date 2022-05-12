@@ -16,35 +16,66 @@ var start = document.querySelector("#start");
 var restart = document.querySelector(".restart");
 var eliminate = document.querySelector(".eliminate");
 
-join.addEventListener("click", () => {
-  socket.emit("join", {
-    roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
-    user: { avatarId: "1", name: "hebele", id: "123" },
-  });
-});
+let user = {
+  name: "AYRILDIM",
+  id: "e5b60e92-3c2f-4bd5610easad",
+  isEliminated: false,
+  language: "tr",
+  userAvatarId: 8,
+  point: 15,
+};
 
-start.addEventListener("click", () => {
+start.addEventListener("click" , () =>{
+  socket.emit("createRoom", {
+    room: {
+      roomAvatarId: 1,
+      roomSize: 8,
+      roomName: "sasa's Room",
+      isPublic: true,
+      isActive: true,
+      isStarted: false,
+    },
+   user
+  });
   socket.emit("start");
+})
+
+send.addEventListener("click", () => {
+  user.id=message.value;
+  socket.emit("join",{
+    roomId:"af438098-f100-4977-9e54-45a90155dc1c",
+    user
+  });
+
+  // socket.emit("reconnect", {
+  //   roomId: "5c707893-02b9-40f1-abfb-bb603daffde2",
+  // });
+
+  // socket.emit("gameMessage", {
+  //   action_type: "MESSAGE",
+  //   message: message.value,
+  //   roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
+  // });
 });
+// join.addEventListener("click", () => {
+  //   socket.emit("join", {
+    //     roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
+    //     user: { avatarId: "1", name: "hebele", id: "123" },
+    //   });
+    // });
+    
+
 
 leave.addEventListener("click", () => {
   socket.emit("leave", "");
 });
 
 eliminate.addEventListener("click", () => {
-  postData("http://localhost:3001/timeUp", {
-    roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
-  }).then((data) => {
-    console.log(data); // JSON data parsed by `data.json()` call
-  });
+  socket.emit("leave");
 });
 
 restart.addEventListener("click", () => {
-  postData("http://localhost:3001/restartGame", {
-    roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
-  }).then((data) => {
-    console.log(data); // JSON data parsed by `data.json()` call
-  });
+  socket.emit("timeUp");
 });
 
 async function postData(url = "", data = {}) {
@@ -89,54 +120,32 @@ socket.on("leave", (data) => {
             <p><bold>${data.message.userInfo.name}:</bold>Ayrıldı.</p>
         `;
 });
-const user = {
-  name: "asas",
-  id: "e5b60e92-3c2f-4b75-b50c-5610eacb05cb",
-  isEliminated: false,
-  language: "tr",
-  userAvatarId: 8,
-  point: 15,
-};
+
+socket.on("eliminate", (data) =>{
+  console.log(data,"Eliminated");
+})
+socket.on("winner", (data) =>{
+  console.log(data,"Winner");
+})
+socket.on("finish", (data) =>{
+  console.log(data,"finished");
+})
+
 socket.on("notJoined", (data) => {
   console.log(data);
 });
 socket.on("room", (room) => {
   console.log({ room });
-  socket.emit("join", { roomId: room.roomId, user });
+  //REDUX NEW ROOM
+  //NAVIGATE TO ROOM
 });
+
+/* NAVIGATE ROOM FUNC{
+  if(!redux.room)return false;
+    socket.emit("join", { roomId: room.roomId, user });
+}*/ 
 
 socket.on("createdRoom", (room) => {
   console.log({ room });
 });
 
-send.addEventListener("click", () => {
-  console.log("joinRoom");
-  // socket.emit("createRoom", {
-  //   room: {
-  //     roomAvatarId: 1,
-  //     roomSize: 8,
-  //     roomName: "sasa's Room",
-  //     isPublic: true,
-  //     isActive: true,
-  //     isStarted: false,
-  //   },
-  //   user: {
-  //     name: "asas",
-  //     id: "e5b60e92-3c2f-4b75-b50c-5610eacb05cb",
-  //     isEliminated: false,
-  //     language: "tr",
-  //     userAvatarId: 8,
-  //     point: 15,
-  //   },
-  // });
-
-  socket.emit("reconnect", {
-    roomId: "5c707893-02b9-40f1-abfb-bb603daffde2",
-  });
-
-  // socket.emit("gameMessage", {
-  //   action_type: "MESSAGE",
-  //   message: message.value,
-  //   roomId: "1ee890d4-9bb3-4591-9cf7-041549bd65f3",
-  // });
-});
