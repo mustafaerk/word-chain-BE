@@ -251,7 +251,6 @@ io.on("connection", function (socket) {
     // Leave the Game
     socket.on("leave", async function () {
       try {
-
         const currentRoom = await RoomModel.findOne({ roomId: data.roomId });
         const newUserList = currentRoom.users.filter((user) => user.id != data.user.id);
         currentRoom.users = newUserList;
@@ -322,6 +321,7 @@ io.on("connection", function (socket) {
         console.error(error);
         return;
       }
+      socket.leave(data.roomId);
     });
   });
 
