@@ -66,7 +66,7 @@ const io = socket(server, { cors: { origin: "*" } });
 
 io.on("connection", function (socket) {
   console.log("New user Connected");
-  
+
   socket.on("quickJoin", async function (data) {
     try {
       const rooms = await RoomModel.find({
@@ -132,7 +132,7 @@ io.on("connection", function (socket) {
     try {
       if (!room) return true;
       if (room.users.length == room.roomSize) {
-        socket.emit("notJoined", { message: "RoomFull" });
+        socket.emit("notJoined", { message: "Room is Full" });
         return true;
       }
       // if (room.isStarted) {
@@ -167,7 +167,7 @@ io.on("connection", function (socket) {
         );
 
         const pointOfWord = word.length || 0;
-        io.in(data.roomId).emit("word", { word, pointOfWord });
+        io.in(data.roomId).emit("word", { word: { word, ownerId: data.user.id }, pointOfWord });
         const indexOfOwner = currentRoom.users.findIndex((user) => user.id === data.user.id);
 
         const nextUser = currentRoom.users
@@ -205,7 +205,7 @@ io.on("connection", function (socket) {
         currentRoom.save();
         const clearUserList = currentRoom.users.filter((user) => !user.isEliminated);
 
-        io.in(data.roomId).emit("eliminate", data.user);
+        io.in(data.roomId).emit("eliminate", data.user.id);
 
         if (clearUserList.length > 1) {
           const index = currentRoom.users.findIndex((user) => user.id === data.user.id);
