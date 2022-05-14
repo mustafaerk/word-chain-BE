@@ -66,18 +66,7 @@ const io = socket(server, { cors: { origin: "*" } });
 
 io.on("connection", function (socket) {
   console.log("New user Connected");
-
-  socket.on("joinRoom", async function (data) {
-    socket.join(data.roomId);
-    socket.broadcast.to(data.roomId).emit("join", {
-      ...data,
-    });
-    // TODO: Find next user Id and send with data : DONE
-    // TODO: Add words to DB
-    
-
-  });
-
+  
   socket.on("quickJoin", async function (data) {
     try {
       const rooms = await RoomModel.find({
@@ -170,66 +159,21 @@ io.on("connection", function (socket) {
     });
 
     //gameMessage
-    socket.on("gameMessage", async function (message) {
-      switch (message.action_type) {
-        case "MESSAGE":
-          try {
-            const room = await RoomModel.findOneAndUpdate(
-              { roomId: message.roomId },
-              { $push: { words: message.message } }
-            );
-            const idxOfUser = room.users.findIndex(
-              (user) => user.id == message.message.ownerId
-            );
-            const pointOfWord = message.message?.word?.length || 0;
-            room.users[idxOfUser].point = pointOfWord;
-            await room.save();
-            const userList = [...room.users];
+    socket.on("word", async function (word) {
+      try {
+        const currentRoom = await RoomModel.findOneAndUpdate(
+          { roomId: data.roomId },
+          { $push: { words: { word, ownerId: data.user.id } } }
+        );
 
-            const clearUserList = userList.filter((user) => !user.isEliminated);
+        const pointOfWord = word.length || 0;
+        io.in(data.roomId).emit("word", { word, pointOfWord });
+        const indexOfOwner = currentRoom.users.findIndex((user) => user.id === data.user.id);
 
-            const userIdx = clearUserList.findIndex(
-              (user) => user.id == message.message.ownerId
-            );
-
-            let nextUserId = null;
-
-            if (userIdx == clearUserList.length - 1) {
-              nextUserId = clearUserList[0].id;
-            } else {
-              nextUserId = clearUserList[userIdx + 1].id;
-            }
-
-            io.in(message.roomId).emit("gameMessage", {
-              message,
-              nextUserId,
-              point: pointOfWord,
-              userList,
-            });
-          } catch (error) {
-            console.log(error);
-          }
-          break;
-      }
-    });
-
-    // Time up
-    socket.on("timeUp", async function () {
-      const currentRoom = await RoomModel.findOne({ roomId: data.roomId });
-      currentRoom.users = currentRoom.users.map((user) => ({
-        ...user,
-        isEliminated: user.id == data.user.id ? true : user.isEliminated,
-      }));
-      currentRoom.save();
-      const clearUserList = currentRoom.users.filter((user) => !user.isEliminated);
-
-      io.in(data.roomId).emit("eliminate", data.user);
-
-      if (clearUserList.length > 1) {
-        const index = currentRoom.users.findIndex((user) => user.id === data.user.id);
         const nextUser = currentRoom.users
-          .slice(index + 1, currentRoom.users.length)
+          .slice(indexOfOwner + 1, currentRoom.users.length)
           .find((user) => !user.isElimated);
+
         if (nextUser) {
           currentRoom.currentUserTurn = nextUser.id;
           io.in(data.roomId).emit("turn", nextUser.id);
@@ -240,60 +184,31 @@ io.on("connection", function (socket) {
           currentRoom.currentUserTurn = nextUserInfoFromBegin.id;
           io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
         }
-      } else {
-        const oldRoom = await RoomModel.findOne({ roomId: data.roomId });
-        const winner = clearUserList[0];
-        const newRoomIdForSave = uuidv4();
-        const currentRoomId = oldRoom.roomId;
-        oldRoom.roomId = newRoomIdForSave;
-        oldRoom.isActive = false;
-        oldRoom.winner = winner;
-        io.in(data.roomId).emit("winner", winner);
+        await room.save();
 
-        await oldRoom.save();
-
-        const newUser = oldRoom.users.map((user) => ({
-          ...user,
-          isEliminated: false,
-          point: 0,
-        }));
-
-        const newRoom = {
-          roomId: currentRoomId,
-          createDate: Date.now(),
-          roomAvatarId: oldRoom.roomAvatarId,
-          ownerId: oldRoom.ownerId,
-          currentUserTurn: oldRoom.ownerId,
-          blockedUsers: [],
-          words: [],
-          winner: [],
-          users: newUser,
-          roomSize: oldRoom.roomSize,
-          roomName: oldRoom.roomName,
-          isPublic: oldRoom.isPublic,
-          isStarted: false,
-        };
-        RoomModel.create(newRoom, () => {
-          io.in(data.roomId).emit("finish", newRoom);
-        });
+      } catch (error) {
+        console.error(error);
+        return;
       }
+
     });
 
-    // Leave the Game
-    socket.on("leave", async function () {
-      const currentRoom = await RoomModel.findOne({ roomId: data.roomId });
-      const newUserList = currentRoom.users.filter((user) => user.id != data.user.id);
-      currentRoom.users = newUserList;
-      const clearUserList = newUserList.filter((user) => !user.isEliminated);
-      //If owner leave the currentRoom make new owner first person of user list after old owner kick from list
-      if (currentRoom.ownerId == data.user.id) {
-        currentRoom.ownerId = currentRoom.users[0].id;
-      }
-      // Check If there is more than 2 people not eliminated and also check if current turn user leave the currentRoom send a next userid for turn;
-      // If 1 person left in the game make it winner! And save this game then create new currentRoom;
-      if (clearUserList.length > 1) {
-        if (currentRoom.currentUserTurn == data.user.id) {
-          const index = currentRoom.users.findIndex((user) => user.id === 2);
+    // Time up
+    socket.on("timeUp", async function () {
+      try {
+
+        const currentRoom = await RoomModel.findOne({ roomId: data.roomId });
+        currentRoom.users = currentRoom.users.map((user) => ({
+          ...user,
+          isEliminated: user.id == data.user.id ? true : user.isEliminated,
+        }));
+        currentRoom.save();
+        const clearUserList = currentRoom.users.filter((user) => !user.isEliminated);
+
+        io.in(data.roomId).emit("eliminate", data.user);
+
+        if (clearUserList.length > 1) {
+          const index = currentRoom.users.findIndex((user) => user.id === data.user.id);
           const nextUser = currentRoom.users
             .slice(index + 1, currentRoom.users.length)
             .find((user) => !user.isElimated);
@@ -307,44 +222,122 @@ io.on("connection", function (socket) {
             currentRoom.currentUserTurn = nextUserInfoFromBegin.id;
             io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
           }
+        } else {
+          const oldRoom = await RoomModel.findOne({ roomId: data.roomId });
+          const winner = clearUserList[0];
+          const newRoomIdForSave = uuidv4();
+          const currentRoomId = oldRoom.roomId;
+          oldRoom.roomId = newRoomIdForSave;
+          oldRoom.isActive = false;
+          oldRoom.winner = winner;
+          io.in(data.roomId).emit("winner", winner);
+
+          await oldRoom.save();
+
+          const newUser = oldRoom.users.map((user) => ({
+            ...user,
+            isEliminated: false,
+            point: 0,
+          }));
+
+          const newRoom = {
+            roomId: currentRoomId,
+            createDate: Date.now(),
+            roomAvatarId: oldRoom.roomAvatarId,
+            ownerId: oldRoom.ownerId,
+            currentUserTurn: oldRoom.ownerId,
+            blockedUsers: [],
+            words: [],
+            winner: [],
+            users: newUser,
+            roomSize: oldRoom.roomSize,
+            roomName: oldRoom.roomName,
+            isPublic: oldRoom.isPublic,
+            isStarted: false,
+          };
+          RoomModel.create(newRoom, () => {
+            io.in(data.roomId).emit("finish", newRoom);
+          });
         }
-        socket.broadcast.to(data.roomId).emit("leave", data.user.id);
-        currentRoom.save();
-      } else {
-        const winner = clearUserList[0];
-        const newRoomIdForSave = uuidv4();
-        const currentRoomId = currentRoom.roomId;
-        currentRoom.roomId = newRoomIdForSave;
-        currentRoom.isActive = false;
-        currentRoom.winner = winner;
-        io.in(data.roomId).emit("winner", winner);
+      } catch (error) {
+        console.error(error);
+        return;
+      }
+    });
 
-        await currentRoom.save();
+    // Leave the Game
+    socket.on("leave", async function () {
+      try {
 
-        const newUser = currentRoom.users.map((user) => ({
-          ...user,
-          isEliminated: false,
-          point: 0,
-        }));
+        const currentRoom = await RoomModel.findOne({ roomId: data.roomId });
+        const newUserList = currentRoom.users.filter((user) => user.id != data.user.id);
+        currentRoom.users = newUserList;
+        const clearUserList = newUserList.filter((user) => !user.isEliminated);
+        //If owner leave the currentRoom make new owner first person of user list after old owner kick from list
+        if (currentRoom.ownerId == data.user.id) {
+          currentRoom.ownerId = currentRoom.users[0].id;
+        }
+        // Check If there is more than 2 people not eliminated and also check if current turn user leave the currentRoom send a next userid for turn;
+        // If 1 person left in the game make it winner! And save this game then create new currentRoom;
+        if (clearUserList.length > 1) {
+          if (currentRoom.currentUserTurn == data.user.id) {
+            const index = currentRoom.users.findIndex((user) => user.id === 2);
+            const nextUser = currentRoom.users
+              .slice(index + 1, currentRoom.users.length)
+              .find((user) => !user.isElimated);
+            if (nextUser) {
+              currentRoom.currentUserTurn = nextUser.id;
+              io.in(data.roomId).emit("turn", nextUser.id);
+            } else {
+              const nextUserInfoFromBegin = currentRoom.users.find(
+                (user) => !user.isElimated
+              );
+              currentRoom.currentUserTurn = nextUserInfoFromBegin.id;
+              io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
+            }
+          }
+          socket.broadcast.to(data.roomId).emit("leave", data.user.id);
+          currentRoom.save();
+        } else {
+          const winner = clearUserList[0];
+          const newRoomIdForSave = uuidv4();
+          const currentRoomId = currentRoom.roomId;
+          currentRoom.roomId = newRoomIdForSave;
+          currentRoom.isActive = false;
+          currentRoom.winner = winner;
+          io.in(data.roomId).emit("winner", winner);
 
-        const newRoom = {
-          roomId: currentRoomId,
-          createDate: Date.now(),
-          roomAvatarId: currentRoom.roomAvatarId,
-          ownerId: currentRoom.ownerId,
-          currentUserTurn: currentRoom.ownerId,
-          blockedUsers: [],
-          words: [],
-          winner: {},
-          users: newUser,
-          roomSize: currentRoom.roomSize,
-          roomName: currentRoom.roomName,
-          isPublic: currentRoom.isPublic,
-          isStarted: false,
-        };
-        RoomModel.create(newRoom, () => {
-          io.in(data.roomId).emit("finish", newRoom);
-        });
+          await currentRoom.save();
+
+          const newUser = currentRoom.users.map((user) => ({
+            ...user,
+            isEliminated: false,
+            point: 0,
+          }));
+
+          const newRoom = {
+            roomId: currentRoomId,
+            createDate: Date.now(),
+            roomAvatarId: currentRoom.roomAvatarId,
+            ownerId: currentRoom.ownerId,
+            currentUserTurn: currentRoom.ownerId,
+            blockedUsers: [],
+            words: [],
+            winner: {},
+            users: newUser,
+            roomSize: currentRoom.roomSize,
+            roomName: currentRoom.roomName,
+            isPublic: currentRoom.isPublic,
+            isStarted: false,
+          };
+          RoomModel.create(newRoom, () => {
+            io.in(data.roomId).emit("finish", newRoom);
+          });
+        }
+
+      } catch (error) {
+        console.error(error);
+        return;
       }
     });
   });
@@ -374,6 +367,7 @@ io.on("connection", function (socket) {
       });
     } catch (error) {
       console.log(error);
+      return;
     }
   });
 });
