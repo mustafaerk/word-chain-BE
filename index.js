@@ -79,15 +79,6 @@ io.on("connection", function (socket) {
       );
 
       if (avaibleRoom) {
-        const user = {
-          id: data.user.id,
-          name: data.user.name,
-          isEliminated: false,
-          language: data.user.language,
-          userAvatarId: data.user.userAvatarId,
-        };
-
-        await avaibleRoom.users.push(user);
         await avaibleRoom.save(() => {
           socket.emit("room", avaibleRoom);
         });
@@ -100,16 +91,7 @@ io.on("connection", function (socket) {
             roomAvatarId: "1",
             ownerId: data.user.id,
             currentUserTurn: data.user.id,
-            users: [
-              {
-                name: data.user.name,
-                id: data.user.id,
-                isEliminated: false,
-                language: data.user.language,
-                userAvatarId: data.user.userAvatarId,
-                point: 0,
-              },
-            ],
+            users: [],
             words: [],
             roomSize: 8,
             roomName: `${data.user.name}'s Room`,
@@ -202,7 +184,7 @@ io.on("connection", function (socket) {
           ...user,
           isEliminated: user.id == data.user.id ? true : user.isEliminated,
         }));
-        currentRoom.save();
+        await currentRoom.save();
         const clearUserList = currentRoom.users.filter((user) => !user.isEliminated);
 
         io.in(data.roomId).emit("eliminate", data.user.id);
@@ -223,22 +205,21 @@ io.on("connection", function (socket) {
             io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
           }
         } else {
-          const oldRoom = await RoomModel.findOne({ roomId: data.roomId });
+          const oldRoom = await RoomModel.findOne({ roomId: data.roomId }).exec();
           const winner = clearUserList[0];
-          const newRoomIdForSave = uuidv4();
           const currentRoomId = oldRoom.roomId;
+
+          const newRoomIdForSave = uuidv4();
           oldRoom.roomId = newRoomIdForSave;
           oldRoom.isActive = false;
+          const currentUsers = [...oldRoom.users];
           oldRoom.winner = winner;
           io.in(data.roomId).emit("winner", winner);
 
           await oldRoom.save();
-
-          const newUser = oldRoom.users.map((user) => ({
-            ...user,
-            isEliminated: false,
-            point: 0,
-          }));
+          const newUser = currentUsers.map((user) => {
+            return { ...user, isEliminated: false, point: 0, };
+          });
 
           const newRoom = {
             roomId: currentRoomId,
@@ -248,15 +229,17 @@ io.on("connection", function (socket) {
             currentUserTurn: oldRoom.ownerId,
             blockedUsers: [],
             words: [],
-            winner: [],
+            winner: {},
             users: newUser,
             roomSize: oldRoom.roomSize,
             roomName: oldRoom.roomName,
             isPublic: oldRoom.isPublic,
             isStarted: false,
           };
-          RoomModel.create(newRoom, () => {
-            io.in(data.roomId).emit("finish", newRoom);
+
+          RoomModel.create(newRoom, function (err, createdRoom) {
+            if (err) console.error(err)
+            else io.in(data.roomId).emit("finish", createdRoom);
           });
         }
       } catch (error) {
@@ -345,8 +328,6 @@ io.on("connection", function (socket) {
   socket.on("createRoom", async function (data) {
     try {
       const newRoomId = uuidv4();
-      const users = [];
-      users.push(data.user);
       const newRoom = {
         roomId: newRoomId,
         createDate: Date.now(),
@@ -356,7 +337,7 @@ io.on("connection", function (socket) {
         blockedUsers: [],
         words: [],
         winner: {},
-        users: users,
+        users: [],
         roomSize: data.room.roomSize,
         roomName: data.room.roomName,
         isPublic: data.room.isPublic,
