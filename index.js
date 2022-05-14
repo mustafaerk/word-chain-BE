@@ -264,7 +264,7 @@ io.on("connection", function (socket) {
         // If 1 person left in the game make it winner! And save this game then create new currentRoom;
         if (clearUserList.length > 1) {
           if (currentRoom.currentUserTurn == data.user.id) {
-            const index = currentRoom.users.findIndex((user) => user.id === 2);
+            const index = currentRoom.users.findIndex((user) => user.id === data.user.id);
             const nextUser = currentRoom.users
               .slice(index + 1, currentRoom.users.length)
               .find((user) => !user.isElimated);
