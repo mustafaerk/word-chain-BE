@@ -153,20 +153,21 @@ io.on("connection", function (socket) {
           word: { word, ownerId: data.user.id },
           pointOfWord,
         });
+
         const indexOfOwner = currentRoom.users.findIndex(
           (user) => user.id === data.user.id
         );
 
         const nextUser = currentRoom.users
           .slice(indexOfOwner + 1, currentRoom.users.length)
-          .find((user) => !user.isElimated);
+          .find((user) => !user.isEliminated);
 
         if (nextUser) {
           currentRoom.currentUserTurn = nextUser.id;
           io.in(data.roomId).emit("turn", nextUser.id);
         } else {
           const nextUserInfoFromBegin = currentRoom.users.find(
-            (user) => !user.isElimated
+            (user) => !user.isEliminated
           );
           currentRoom.currentUserTurn = nextUserInfoFromBegin.id;
           io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
@@ -199,13 +200,13 @@ io.on("connection", function (socket) {
           );
           const nextUser = currentRoom.users
             .slice(index + 1, currentRoom.users.length)
-            .find((user) => !user.isElimated);
+            .find((user) => !user.isEliminated);
           if (nextUser) {
             currentRoom.currentUserTurn = nextUser.id;
             io.in(data.roomId).emit("turn", nextUser.id);
           } else {
             const nextUserInfoFromBegin = currentRoom.users.find(
-              (user) => !user.isElimated
+              (user) => !user.isEliminated
             );
             currentRoom.currentUserTurn = nextUserInfoFromBegin.id;
             io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
@@ -279,13 +280,13 @@ io.on("connection", function (socket) {
             );
             const nextUser = currentRoom.users
               .slice(index + 1, currentRoom.users.length)
-              .find((user) => !user.isElimated);
+              .find((user) => !user.isEliminated);
             if (nextUser) {
               currentRoom.currentUserTurn = nextUser.id;
               io.in(data.roomId).emit("turn", nextUser.id);
             } else {
               const nextUserInfoFromBegin = currentRoom.users.find(
-                (user) => !user.isElimated
+                (user) => !user.isEliminated
               );
               currentRoom.currentUserTurn = nextUserInfoFromBegin.id;
               io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
@@ -325,13 +326,15 @@ io.on("connection", function (socket) {
             isPublic: currentRoom.isPublic,
             isStarted: false,
           };
-          RoomModel.create(newRoom, () => {
-            io.in(data.roomId).emit("finish", newRoom);
+
+          RoomModel.create(newRoom, function (err, createdRoom) {
+            if (err) console.error(err);
+            else io.in(data.roomId).emit("finish", createdRoom);
           });
         }
         if (currentRoom.users.length == 1) {
           io.socketsLeave(data.roomId);
-        } 
+        }
       } catch (error) {
         console.error(error);
         return;
@@ -358,8 +361,9 @@ io.on("connection", function (socket) {
         isPublic: data.room.isPublic,
         isStarted: false,
       };
-      RoomModel.create(newRoom, () => {
-        socket.emit("room", newRoom);
+      RoomModel.create(newRoom, function (err, createdRoom) {
+        if (err) console.error(err);
+        else socket.emit("room", createdRoom);
       });
     } catch (error) {
       console.log(error);
