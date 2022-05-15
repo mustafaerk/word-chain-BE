@@ -1,0 +1,31 @@
+{
+  "name": "word-chain-game-be",
+  "version": "1.0.0",
+  "description": "This is for new word chain game",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "start-dev": "SET NODE_ENV=dev&& nodemon start",
+    "start-prod": "SET NODE_ENV=prod&& node index.js"
+  },
+  "keywords": [
+    "wordchain"
+  ],
+  "author": "word-chain-team",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.3",
+    "jsonwebtoken": "^8.5.1",
+    "mongodb": "^4.5.0",
+    "mongoose": "^6.2.10",
+    "socket.io": "^4.4.1",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
