@@ -118,11 +118,12 @@ io.on("connection", function (socket) {
         const newUserList = currentRoom?.users?.filter(
           (user) => user.id != data.user.id
         );
-        currentRoom.users = newUserList;
+      
         if (newUserList.length == 0) {
           io.socketsLeave(data.roomId);
           currentRoom.isActive = false;
         } else {
+          currentRoom.users = newUserList;
           const clearUserList = newUserList.filter(
             (user) => !user.isEliminated
           );
