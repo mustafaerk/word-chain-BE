@@ -128,10 +128,11 @@ io.on("connection", function (socket) {
           );
           //If owner leave the currentRoom make new owner first person of user list after old owner kick from list
           if (currentRoom.ownerId == data.user.id) {
-            currentRoom.ownerId = currentRoom.users[0].id;
-            io.in(data.roomId).emit("owner", currentRoom.users[0].id);
+            currentRoom.ownerId = newUserList[0].id;
+            io.in(data.roomId).emit("owner", newUserList[0].id);
             if(currentRoom.isStarted == false){
-              io.in(data.roomId).emit("turn", currentRoom.users[0].id);
+              io.in(data.roomId).emit("turn", newUserList[0].id);
+              currentRoom.currentUserTurn = newUserList[0].id;
             }
           }
 
@@ -379,10 +380,11 @@ io.on("connection", function (socket) {
           );
           //If owner leave the currentRoom make new owner first person of user list after old owner kick from list
           if (currentRoom.ownerId == data.user.id) {
-            currentRoom.ownerId = currentRoom.users[0].id;
-            io.in(data.roomId).emit("owner", currentRoom.users[0].id);
+            currentRoom.ownerId = newUserList[0].id;
+            io.in(data.roomId).emit("owner", newUserList[0].id);
             if(currentRoom.isStarted == false){
-              io.in(data.roomId).emit("turn", currentRoom.users[0].id);
+              io.in(data.roomId).emit("turn", newUserList[0].id);
+              currentRoom.currentUserTurn = newUserList[0].id;
             }
           }
 
