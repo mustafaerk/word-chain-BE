@@ -197,13 +197,13 @@ io.on("connection", function (socket) {
               });
             }
           }
-            await currentRoom.save();
           
         }
       } catch (error) {
         console.error(error);
         return;
       }
+      await currentRoom.save();
       socket.leave(data.roomId);
     });
 
@@ -238,7 +238,7 @@ io.on("connection", function (socket) {
     // Game Start
     socket.on("start", async function () {
       const currentRoom = await RoomModel.findOne({ roomId: data.roomId });
-      if (currentRoom.ownerId == data.user.id) {
+      if (currentRoom.ownerId == data.user.id) {//TODO CHECK USERS LENGTH IF >1
         currentRoom.isStarted = true;
         currentRoom.save();
         io.in(data.roomId).emit("start", true);
@@ -449,13 +449,12 @@ io.on("connection", function (socket) {
               });
             }
           }
-            await currentRoom.save();
-          
         }
       } catch (error) {
         console.error(error);
         return;
       }
+      await currentRoom.save();
       socket.leave(data.roomId);
     });
   });
