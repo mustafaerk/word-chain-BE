@@ -76,7 +76,6 @@ io.on("connection", function (socket) {
       const rooms = await RoomModel.find({
         isActive: true,
         isPublic: true,
-        isStarted: false,
       }).exec();
       const avaibleRoom = rooms?.find(
         (room) => room.users.length < room.roomSize
@@ -119,24 +118,30 @@ io.on("connection", function (socket) {
         const currentRoom = await RoomModel.findOne({
           roomId: data.roomId,
         }).exec();
-        const newUserList = currentRoom?.users?.filter(
-          (user) => user.id != data.user.id
-        );
-        currentRoom.users = newUserList;
-        if (newUserList.length == 0) {
+
+        const newUsers = currentRoom.users.map((user) => ({
+          ...user,
+          isOnline: user.id == data.user.id ? false : user.isOnline,
+          isEliminated: user.id == data.user.id ? true : user.isEliminated
+        }));
+        currentRoom.users = newUsers;
+
+        const onlineUserList = newUsers.filter(user => user.isOnline)
+
+        if (onlineUserList.length == 0) {
           io.socketsLeave(data.roomId);
           currentRoom.isActive = false;
         } else {
-          const clearUserList = newUserList.filter(
+          const notEliminatedUsers = onlineUserList.filter(
             (user) => !user.isEliminated
           );
           //If owner leave the currentRoom make new owner first person of user list after old owner kick from list
           if (currentRoom.ownerId == data.user.id) {
-            currentRoom.ownerId = newUserList[0].id;
-            io.in(data.roomId).emit("owner", newUserList[0].id);
+            currentRoom.ownerId = onlineUserList[0].id;
+            io.in(data.roomId).emit("owner", onlineUserList[0].id);
             if (currentRoom.isStarted == false) {
-              io.in(data.roomId).emit("turn", newUserList[0].id);
-              currentRoom.currentUserTurn = newUserList[0].id;
+              io.in(data.roomId).emit("turn", onlineUserList[0].id);
+              currentRoom.currentUserTurn = onlineUserList[0].id;
             }
           }
 
@@ -144,20 +149,21 @@ io.on("connection", function (socket) {
           // Check If there is more than 2 people not eliminated and also check if current turn user leave the currentRoom send a next userid for turn;
           // If 1 person left in the game make it winner! And save this game then create new currentRoom;
           if (currentRoom.isStarted) {
-            if (clearUserList.length > 1) {
+            if (notEliminatedUsers.length > 1) {
               if (currentRoom.currentUserTurn == data.user.id) {
                 const index = currentRoom.users.findIndex(
                   (user) => user.id === data.user.id
                 );
                 const nextUser = currentRoom.users
                   .slice(index + 1, currentRoom.users.length)
-                  .find((user) => !user.isEliminated);
+                  .find((user) => !user.isEliminated && user.isOnline);
+
                 if (nextUser) {
                   currentRoom.currentUserTurn = nextUser.id;
                   io.in(data.roomId).emit("turn", nextUser.id);
                 } else {
                   const nextUserInfoFromBegin = currentRoom.users.find(
-                    (user) => !user.isEliminated
+                    (user) => !user.isEliminated && user.isOnline
                   );
                   currentRoom.currentUserTurn = nextUserInfoFromBegin.id;
                   io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
@@ -216,8 +222,9 @@ io.on("connection", function (socket) {
 
     const room = await RoomModel.findOne({ roomId: data.roomId });
     try {
+      const onlineUserList = room.users.filter(user => user.isOnline)
       if (!room) return true;
-      if (room.users.length == room.roomSize) {
+      if (onlineUserList?.length == room.roomSize) {
         socket.emit("notJoined", { message: "Room is Full" });
         return true;
       }
@@ -225,12 +232,30 @@ io.on("connection", function (socket) {
       //   socket.emit("notJoined", { message: "Started" });
       //   return true;
       // }
-      const isUserExist = room.users.find(user => user.id == data.user.id);
-      if (!isUserExist) {
-        room.users.push(data.user);
+      const isUserExistAndOnline = room.users.find(user => (user.id == data.user.id && user.isOnline));
+      const isUserExistAndOffline = room.users.find(user => (user.id == data.user.id && !user.isOnline));
+
+      if (!isUserExistAndOnline) {
+        let userList = room.users;
+
+        const newUsers = userList.map((user) => ({
+          ...user,
+          isOnline: user.id == data.user.id ? true : user.isOnline,
+        }));
+
+        const joinedUser = newUsers.find(user => user.id == data.user.id);
+
+        if (isUserExistAndOffline) {
+          room.users = newUsers;
+          socket.broadcast.to(data.roomId).emit("join", joinedUser);
+        } else {
+          const user = { ...data.user, isEliminated: room.isStarted ? true : false };
+
+          room.users.push(user);
+          socket.broadcast.to(data.roomId).emit("join", user);
+        }
         room.save();
         socket.join(data.roomId);
-        socket.broadcast.to(data.roomId).emit("join", data.user);
         socket.emit("room", room);
       }
       else {

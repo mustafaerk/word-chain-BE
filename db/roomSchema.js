@@ -14,6 +14,7 @@ const roomSchema = new Schema({
       name: String,
       id: String,
       isEliminated: Boolean,
+      isOnline: { type: Boolean, default: true },
       language: String,
       userAvatarId: Number,
       point: { type: Number, default: 0 }
