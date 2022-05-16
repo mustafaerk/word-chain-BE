@@ -137,11 +137,11 @@ io.on("connection", function (socket) {
           );
           //If owner leave the currentRoom make new owner first person of user list after old owner kick from list
           if (currentRoom.ownerId == data.user.id) {
-            currentRoom.ownerId = onlineUserList[0].id;
-            io.in(data.roomId).emit("owner", onlineUserList[0].id);
+            currentRoom.ownerId = notEliminatedUsers[0].id;
+            io.in(data.roomId).emit("owner", notEliminatedUsers[0].id);
             if (currentRoom.isStarted == false) {
-              io.in(data.roomId).emit("turn", onlineUserList[0].id);
-              currentRoom.currentUserTurn = onlineUserList[0].id;
+              io.in(data.roomId).emit("turn", notEliminatedUsers[0].id);
+              currentRoom.currentUserTurn = notEliminatedUsers[0].id;
             }
           }
 
@@ -170,7 +170,7 @@ io.on("connection", function (socket) {
                 }
               }
             } else {
-              const winner = clearUserList[0];
+              const winner = notEliminatedUsers[0];
               const newRoomIdForSave = uuidv4();
               const currentRoomId = currentRoom.roomId;
               currentRoom.roomId = newRoomIdForSave;
@@ -244,13 +244,14 @@ io.on("connection", function (socket) {
         }));
 
         const joinedUser = newUsers.find(user => user.id == data.user.id);
-
+        
         if (isUserExistAndOffline) {
+          console.log(joinedUser)
           room.users = newUsers;
           socket.broadcast.to(data.roomId).emit("join", joinedUser);
         } else {
           const user = { ...data.user, isEliminated: room.isStarted ? true : false };
-
+          console.log(user)
           room.users.push(user);
           socket.broadcast.to(data.roomId).emit("join", user);
         }
@@ -270,21 +271,24 @@ io.on("connection", function (socket) {
     // Game Start
     socket.on("start", async function () {
       const currentRoom = await RoomModel.findOne({ roomId: data.roomId });
-      const onlineUserList = currentRoom.room.users.filter(user => user.isOnline);
-      if (currentRoom.ownerId == data.user.id && onlineUserList > 1) {//TODO CHECK USERS LENGTH IF >1
+      const onlineUserList = currentRoom?.users.filter(user => user.isOnline && !user.isEliminated);
+      console.log(onlineUserList);
+      if (currentRoom.ownerId == data.user.id && onlineUserList.length > 1) {//TODO CHECK USERS LENGTH IF >1 DONE I THINK
         currentRoom.isStarted = true;
         currentRoom.save();
         io.in(data.roomId).emit("start", true);
       }
     });
 
-    //gameMessage Eliminated users can write wtf?
+    //gameMessage Eliminated users can write wtf? Fixed I think
     socket.on("word", async function (word) {
       try {
         const currentRoom = await RoomModel.findOneAndUpdate(
           { roomId: data.roomId },
           { $push: { words: { word, ownerId: data.user.id } } }
         );
+        const onlineUserList = currentRoom.users.filter(user => user.isOnline && !user.isEliminated);
+
 
         const pointOfWord = word.length || 0;
         io.in(data.roomId).emit("word", {
@@ -292,19 +296,19 @@ io.on("connection", function (socket) {
           pointOfWord,
         });
 
-        const indexOfOwner = currentRoom.users.findIndex(
+        const indexOfOwner = onlineUserList.findIndex(
           (user) => user.id === data.user.id
         );
 
-        const nextUser = currentRoom.users
-          .slice(indexOfOwner + 1, currentRoom.users.length)
+        const nextUser = onlineUserList
+          .slice(indexOfOwner + 1, onlineUserList.length)
           .find((user) => !user.isEliminated);
 
         if (nextUser) {
           currentRoom.currentUserTurn = nextUser.id;
           io.in(data.roomId).emit("turn", nextUser.id);
         } else {
-          const nextUserInfoFromBegin = currentRoom.users.find(
+          const nextUserInfoFromBegin = onlineUserList.find(
             (user) => !user.isEliminated
           );
           currentRoom.currentUserTurn = nextUserInfoFromBegin.id;
@@ -327,7 +331,7 @@ io.on("connection", function (socket) {
         }));
         await currentRoom.save();
         const clearUserList = currentRoom.users.filter(
-          (user) => !user.isEliminated
+          (user) => !user.isEliminated && user.isOnline
         );
 
         io.in(data.roomId).emit("eliminate", data.user.id);
