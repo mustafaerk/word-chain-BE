@@ -270,7 +270,8 @@ io.on("connection", function (socket) {
     // Game Start
     socket.on("start", async function () {
       const currentRoom = await RoomModel.findOne({ roomId: data.roomId });
-      if (currentRoom.ownerId == data.user.id) {//TODO CHECK USERS LENGTH IF >1
+      const onlineUserList = currentRoom.room.users.filter(user => user.isOnline);
+      if (currentRoom.ownerId == data.user.id && onlineUserList > 1) {//TODO CHECK USERS LENGTH IF >1
         currentRoom.isStarted = true;
         currentRoom.save();
         io.in(data.roomId).emit("start", true);
