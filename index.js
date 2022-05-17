@@ -64,12 +64,8 @@ var server = app.listen(PORT, () => {
 
 const io = socket(server, { cors: { origin: "*" } });
 
-
-
-
 io.on("connection", function (socket) {
   console.log("New user Connected");
-
 
   socket.on("quickJoin", async function (data) {
     try {
@@ -122,11 +118,16 @@ io.on("connection", function (socket) {
         const newUsers = currentRoom.users.map((user) => ({
           ...user,
           isOnline: user.id == data.user.id ? false : user.isOnline,
-          isEliminated: user.id == data.user.id ? true : user.isEliminated
+          isEliminated:
+            user.id == data.user.id &&
+            currentRoom.isStarted &&
+            currentRoom.currentUserTurn == data.user.id
+              ? true
+              : user.isEliminated,
         }));
         currentRoom.users = newUsers;
 
-        const onlineUserList = newUsers.filter(user => user.isOnline)
+        const onlineUserList = newUsers.filter((user) => user.isOnline);
 
         if (onlineUserList.length == 0) {
           io.socketsLeave(data.roomId);
@@ -213,16 +214,17 @@ io.on("connection", function (socket) {
         console.error(error);
         return;
       }
-    }
-
+    };
 
     socket.on("disconnect", async function () {
       handleLeave();
     });
 
-    const room = await RoomModel.findOne({ roomId: data.roomId });
     try {
-      const onlineUserList = room.users.filter(user => user.isOnline)
+      const room = await RoomModel.findOneAndUpdate({
+        roomId: data.roomId,
+      }).exec();
+      const onlineUserList = room.users.filter((user) => user.isOnline);
       if (!room) return true;
       if (onlineUserList?.length == room.roomSize) {
         socket.emit("notJoined", { message: "Room is Full" });
@@ -232,38 +234,35 @@ io.on("connection", function (socket) {
       //   socket.emit("notJoined", { message: "Started" });
       //   return true;
       // }
-      const isUserExistAndOnline = room.users.find(user => (user.id == data.user.id && user.isOnline));
-      const isUserExistAndOffline = room.users.find(user => (user.id == data.user.id && !user.isOnline));
-
-      if (!isUserExistAndOnline) {
-        let userList = room.users;
-
-        const newUsers = userList.map((user) => ({
-          ...user,
-          isOnline: user.id == data.user.id ? true : user.isOnline,
-        }));
-
-        const joinedUser = newUsers.find(user => user.id == data.user.id);
-        
-        if (isUserExistAndOffline) {
-          console.log(joinedUser)
-          room.users = newUsers;
-          socket.broadcast.to(data.roomId).emit("join", joinedUser);
+      const isUserExist = room.users.find((user) => user.id == data.user.id);
+      if (isUserExist) {
+        let userList = [...room.users];
+        if (isUserExist.isOnline) {
+          socket.emit("notJoined", { message: "You are already in this room" });
+          return true;
         } else {
-          const user = { ...data.user, isEliminated: room.isStarted ? true : false };
-          console.log(user)
-          room.users.push(user);
-          socket.broadcast.to(data.roomId).emit("join", user);
-        }
-        room.save();
-        socket.join(data.roomId);
-        socket.emit("room", room);
-      }
-      else {
-        socket.emit("notJoined", { message: "You are already in this room" });
-        return true;
-      }
+          const newUsers = userList.map((user) => ({
+            ...user,
+            isOnline: user.id == data.user.id ? true : user.isOnline,
+          }));
+          const joinedUser = isUserExist.toObject();
 
+          room.users = newUsers;
+          socket.broadcast
+            .to(data.roomId)
+            .emit("join", { ...joinedUser, isOnline: true });
+        }
+      } else {
+        const user = {
+          ...data.user,
+          isEliminated: room.isStarted ? true : false,
+        };
+        room.users.push(user);
+        socket.broadcast.to(data.roomId).emit("join", user);
+      }
+      room.save();
+      socket.join(data.roomId);
+      socket.emit("room", room);
     } catch (error) {
       console.log(error);
     }
@@ -271,9 +270,11 @@ io.on("connection", function (socket) {
     // Game Start
     socket.on("start", async function () {
       const currentRoom = await RoomModel.findOne({ roomId: data.roomId });
-      const onlineUserList = currentRoom?.users.filter(user => user.isOnline && !user.isEliminated);
-      console.log(onlineUserList);
-      if (currentRoom.ownerId == data.user.id && onlineUserList.length > 1) {//TODO CHECK USERS LENGTH IF >1 DONE I THINK
+      const onlineUserList = currentRoom?.users.filter(
+        (user) => user.isOnline && !user.isEliminated
+      );
+      if (currentRoom.ownerId == data.user.id && onlineUserList.length > 1) {
+        //TODO CHECK USERS LENGTH IF >1 DONE I THINK
         currentRoom.isStarted = true;
         currentRoom.save();
         io.in(data.roomId).emit("start", true);
@@ -287,8 +288,9 @@ io.on("connection", function (socket) {
           { roomId: data.roomId },
           { $push: { words: { word, ownerId: data.user.id } } }
         );
-        const onlineUserList = currentRoom.users.filter(user => user.isOnline && !user.isEliminated);
-
+        const onlineUserList = currentRoom.users.filter(
+          (user) => user.isOnline && !user.isEliminated
+        );
 
         const pointOfWord = word.length || 0;
         io.in(data.roomId).emit("word", {
