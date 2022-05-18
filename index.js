@@ -114,14 +114,13 @@ io.on("connection", function (socket) {
         const currentRoom = await RoomModel.findOne({
           roomId: data.roomId,
         }).exec();
-
         const newUsers = currentRoom.users.map((user) => ({
           ...user,
           isOnline: user.id == data.user.id ? false : user.isOnline,
           isEliminated:
             user.id == data.user.id &&
-            currentRoom.isStarted &&
-            currentRoom.currentUserTurn == data.user.id
+              currentRoom.isStarted &&
+              currentRoom.currentUserTurn == data.user.id
               ? true
               : user.isEliminated,
         }));
@@ -170,6 +169,8 @@ io.on("connection", function (socket) {
                   io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
                 }
               }
+              await currentRoom.save();
+
             } else {
               const winner = notEliminatedUsers[0];
               const newRoomIdForSave = uuidv4();
@@ -201,6 +202,7 @@ io.on("connection", function (socket) {
                 isStarted: false,
               };
 
+              await currentRoom.save();
               RoomModel.create(newRoom, function (err, createdRoom) {
                 if (err) console.error(err);
                 else io.in(data.roomId).emit("finish", createdRoom);
@@ -208,7 +210,6 @@ io.on("connection", function (socket) {
             }
           }
         }
-        await currentRoom.save();
         socket.leave(data.roomId);
       } catch (error) {
         console.error(error);
@@ -221,7 +222,7 @@ io.on("connection", function (socket) {
     });
 
     try {
-      const room = await RoomModel.findOneAndUpdate({
+      const room = await RoomModel.findOne({
         roomId: data.roomId,
       }).exec();
       const onlineUserList = room.users.filter((user) => user.isOnline);
