@@ -109,6 +109,56 @@ io.on("connection", function (socket) {
   });
 
   socket.on("join", async function (data) {
+
+    try {
+      const room = await RoomModel.findOne({
+        roomId: data.roomId,
+      }).exec();
+      const arr = room.users.toObject();
+      const onlineUserList = arr.filter((user) => user.isOnline);
+      if (!room) return true;
+      if (onlineUserList?.length == room.roomSize) {
+        socket.emit("notJoined", { message: "Room is Full" });
+        return true;
+      }
+      // if (room.isStarted) {
+      //   socket.emit("notJoined", { message: "Started" });
+      //   return true;
+      // }
+      const isUserExist = room.users.find((user) => user.id == data.user.id);
+      if (isUserExist) {
+        let userList = [...room.users];
+        if (isUserExist.isOnline) {
+          socket.emit("notJoined", { message: "You are already in this room" });
+          return true;
+        } else {
+          const newUsers = userList.map((user) => ({
+            ...user,
+            isOnline: user.id == data.user.id ? true : user.isOnline,
+          }));
+          const joinedUser = isUserExist.toObject();
+
+          room.users = newUsers;
+          socket.broadcast
+            .to(data.roomId)
+            .emit("join", { ...joinedUser, isOnline: true });
+        }
+      } else {
+        const user = {
+          ...data.user,
+          isEliminated: room.isStarted ? true : false,
+        };
+        room.users.push(user);
+        socket.broadcast.to(data.roomId).emit("join", user);
+      }
+      room.save();
+      socket.join(data.roomId);
+      socket.emit("room", room);
+    } catch (error) {
+      console.log(error);
+    }
+
+
     const handleLeave = async () => {
       try {
         const currentRoom = await RoomModel.findOne({
@@ -129,9 +179,10 @@ io.on("connection", function (socket) {
 
         const onlineUserList = arr.filter((user) => user.isOnline);
 
-        if (onlineUserList.length == 0) {
+        if (onlineUserList.length == 1) {
           io.socketsLeave(data.roomId);
           currentRoom.isActive = false;
+          await currentRoom.save();
         } else {
           const notEliminatedUsers = onlineUserList.filter(
             (user) => !user.isEliminated
@@ -223,54 +274,12 @@ io.on("connection", function (socket) {
     socket.on("disconnect", async function () {
       handleLeave();
     });
+    
+    // Leave the Game Turn not working when someone leaving...
+    socket.on("leave", async function () {
+      handleLeave();
+    });
 
-    try {
-      const room = await RoomModel.findOne({
-        roomId: data.roomId,
-      }).exec();
-      const arr = room.users.toObject();
-      const onlineUserList = arr.filter((user) => user.isOnline);
-      if (!room) return true;
-      if (onlineUserList?.length == room.roomSize) {
-        socket.emit("notJoined", { message: "Room is Full" });
-        return true;
-      }
-      // if (room.isStarted) {
-      //   socket.emit("notJoined", { message: "Started" });
-      //   return true;
-      // }
-      const isUserExist = room.users.find((user) => user.id == data.user.id);
-      if (isUserExist) {
-        let userList = [...room.users];
-        if (isUserExist.isOnline) {
-          socket.emit("notJoined", { message: "You are already in this room" });
-          return true;
-        } else {
-          const newUsers = userList.map((user) => ({
-            ...user,
-            isOnline: user.id == data.user.id ? true : user.isOnline,
-          }));
-          const joinedUser = isUserExist.toObject();
-
-          room.users = newUsers;
-          socket.broadcast
-            .to(data.roomId)
-            .emit("join", { ...joinedUser, isOnline: true });
-        }
-      } else {
-        const user = {
-          ...data.user,
-          isEliminated: room.isStarted ? true : false,
-        };
-        room.users.push(user);
-        socket.broadcast.to(data.roomId).emit("join", user);
-      }
-      room.save();
-      socket.join(data.roomId);
-      socket.emit("room", room);
-    } catch (error) {
-      console.log(error);
-    }
 
     // Game Start
     socket.on("start", async function () {
@@ -406,10 +415,7 @@ io.on("connection", function (socket) {
       }
     });
 
-    // Leave the Game Turn not working when someone leaving...
-    socket.on("leave", async function () {
-      handleLeave();
-    });
+
   });
 
   socket.on("createRoom", async function (data) {
