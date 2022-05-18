@@ -114,6 +114,7 @@ io.on("connection", function (socket) {
         const currentRoom = await RoomModel.findOne({
           roomId: data.roomId,
         }).exec();
+        const arr = currentRoom.users.toObject();
         const newUsers = currentRoom.users.map((user) => ({
           ...user,
           isOnline: user.id == data.user.id ? false : user.isOnline,
@@ -126,7 +127,7 @@ io.on("connection", function (socket) {
         }));
         currentRoom.users = newUsers;
 
-        const onlineUserList = newUsers.filter((user) => user.isOnline);
+        const onlineUserList = arr.filter((user) => user.isOnline);
 
         if (onlineUserList.length == 0) {
           io.socketsLeave(data.roomId);
@@ -208,6 +209,8 @@ io.on("connection", function (socket) {
                 else io.in(data.roomId).emit("finish", createdRoom);
               });
             }
+          } else {
+            await currentRoom.save();
           }
         }
         socket.leave(data.roomId);
@@ -225,7 +228,8 @@ io.on("connection", function (socket) {
       const room = await RoomModel.findOne({
         roomId: data.roomId,
       }).exec();
-      const onlineUserList = room.users.filter((user) => user.isOnline);
+      const arr = room.users.toObject();
+      const onlineUserList = arr.filter((user) => user.isOnline);
       if (!room) return true;
       if (onlineUserList?.length == room.roomSize) {
         socket.emit("notJoined", { message: "Room is Full" });
