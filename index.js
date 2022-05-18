@@ -117,6 +117,10 @@ io.on("connection", function (socket) {
       const arr = room.users.toObject();
       const onlineUserList = arr.filter((user) => user.isOnline);
       if (!room) return true;
+      else if (!room.isActive) {
+        socket.emit("notJoined", { message: "Your room is fucked" });
+        return true;
+      }
       if (onlineUserList?.length == room.roomSize) {
         socket.emit("notJoined", { message: "Room is Full" });
         return true;
@@ -131,7 +135,8 @@ io.on("connection", function (socket) {
         if (isUserExist.isOnline) {
           socket.emit("notJoined", { message: "You are already in this room" });
           return true;
-        } else {
+        }
+        else {
           const newUsers = userList.map((user) => ({
             ...user,
             isOnline: user.id == data.user.id ? true : user.isOnline,
@@ -164,8 +169,8 @@ io.on("connection", function (socket) {
         const currentRoom = await RoomModel.findOne({
           roomId: data.roomId,
         }).exec();
-        const arr = currentRoom.users.toObject();
-        const newUsers = currentRoom.users.map((user) => ({
+
+        const newUsers = currentRoom.users.toObject().map((user) => ({
           ...user,
           isOnline: user.id == data.user.id ? false : user.isOnline,
           isEliminated:
@@ -175,11 +180,12 @@ io.on("connection", function (socket) {
               ? true
               : user.isEliminated,
         }));
+
         currentRoom.users = newUsers;
 
-        const onlineUserList = arr.filter((user) => user.isOnline);
+        const onlineUserList = newUsers.filter((user) => user.isOnline);
 
-        if (onlineUserList.length == 1) {
+        if (onlineUserList.length == 0) {
           io.socketsLeave(data.roomId);
           currentRoom.isActive = false;
           await currentRoom.save();
@@ -274,7 +280,7 @@ io.on("connection", function (socket) {
     socket.on("disconnect", async function () {
       handleLeave();
     });
-    
+
     // Leave the Game Turn not working when someone leaving...
     socket.on("leave", async function () {
       handleLeave();
