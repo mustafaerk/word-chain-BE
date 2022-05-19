@@ -115,6 +115,7 @@ io.on("connection", function (socket) {
         roomId: data.roomId,
       }).exec();
       const arr = room.users.toObject();
+
       const onlineUserList = arr.filter((user) => user.isOnline);
       if (!room) return true;
       else if (!room.isActive) {
@@ -180,11 +181,9 @@ io.on("connection", function (socket) {
               ? true
               : user.isEliminated,
         }));
-
         currentRoom.users = newUsers;
-
         const onlineUserList = newUsers.filter((user) => user.isOnline);
-
+        socket.leave(data.roomId);
         if (onlineUserList.length == 0) {
           io.socketsLeave(data.roomId);
           currentRoom.isActive = false;
@@ -238,7 +237,7 @@ io.on("connection", function (socket) {
               currentRoom.winner = winner;
               io.in(data.roomId).emit("winner", winner);
 
-              const newUser = currentRoom.users.map((user) => ({
+              const newUser = currentRoom.users.filter(user => user.isOnline).map((user) => ({
                 ...user,
                 isEliminated: false,
                 point: 0,
@@ -270,7 +269,7 @@ io.on("connection", function (socket) {
             await currentRoom.save();
           }
         }
-        socket.leave(data.roomId);
+
       } catch (error) {
         console.error(error);
         return;
@@ -278,6 +277,7 @@ io.on("connection", function (socket) {
     };
 
     socket.on("disconnect", async function () {
+      console.log('disconnected')
       handleLeave();
     });
 
@@ -390,7 +390,7 @@ io.on("connection", function (socket) {
           io.in(data.roomId).emit("winner", winner);
 
           await oldRoom.save();
-          const newUser = currentUsers.map((user) => {
+          const newUser = currentUsers.filter(user => user.isOnline).map((user) => {
             return { ...user, isEliminated: false, point: 0 };
           });
 
