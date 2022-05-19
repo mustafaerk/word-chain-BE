@@ -184,7 +184,7 @@ io.on("connection", function (socket) {
         const onlineUserList = newUsers.filter((user) => user.isOnline);
 
         console.log(socket.adapter.rooms);  // display the same list of rooms the specified room is still there
-        console.log(io.sockets.clients(data.room));
+        console.log(io.sockets.clients(data.roomId));
         socket.leave(data.roomId, function (err) {
           console.log(err); // display null
         });
