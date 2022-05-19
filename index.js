@@ -185,6 +185,9 @@ io.on("connection", function (socket) {
 
         console.log(socket.adapter.rooms);  // display the same list of rooms the specified room is still there
         console.log(io.sockets.clients(data.roomId));
+        console.log(io.sockets.sockets);
+        const sockets = await io.in(data.roomId).fetchSockets();
+        console.log(sockets)
         socket.leave(data.roomId, function (err) {
           console.log(err); // display null
         });
