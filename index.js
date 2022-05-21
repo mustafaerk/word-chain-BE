@@ -367,15 +367,17 @@ io.on("connection", function (socket) {
           const index = currentRoom.users.findIndex(
             (user) => user.id === data.user.id
           );
+
           const nextUser = currentRoom.users
             .slice(index + 1, currentRoom.users.length)
-            .find((user) => !user.isEliminated);
+            .find((user) => !user.isEliminated && user.isOnline);
+
           if (nextUser) {
             currentRoom.currentUserTurn = nextUser.id;
             io.in(data.roomId).emit("turn", nextUser.id);
           } else {
             const nextUserInfoFromBegin = currentRoom.users.find(
-              (user) => !user.isEliminated
+              (user) => !user.isEliminated && user.isOnline
             );
             currentRoom.currentUserTurn = nextUserInfoFromBegin.id;
             io.in(data.roomId).emit("turn", nextUserInfoFromBegin.id);
