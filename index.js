@@ -309,15 +309,19 @@ io.on("connection", function (socket) {
     //gameMessage Eliminated users can write wtf? Fixed I think
     socket.on("word", async function (word) {
       try {
+        const pointOfWord = word.length || 0;
+
         const currentRoom = await RoomModel.findOneAndUpdate(
           { roomId: data.roomId },
           { $push: { words: { word, ownerId: data.user.id } } }
         );
+
+        currentRoom.users = currentRoom.users.map(user => ({ ...user, point: user.id == data.user.id ? user.point + pointOfWord : user.point }));
+
         const onlineUserList = currentRoom.users.filter(
           (user) => user.isOnline && !user.isEliminated
         );
 
-        const pointOfWord = word.length || 0;
         io.in(data.roomId).emit("word", {
           word: { word, ownerId: data.user.id },
           pointOfWord,
