@@ -48,7 +48,7 @@ module.exports.listRoom_get = async (req, res) => {
       const newRoomList = rooms.map((room) => {
         {
           return {
-            currentUserLength: room.users.length,
+            currentUserLength: room.users?.filter(rom => rom.isOnline).length,
             roomId: room.roomId,
             roomAvatarId: room.roomAvatarId,
             point: room.point,
