@@ -23,12 +23,20 @@ const PORT = process.env.PORT || 5001;
 const uri =
   process.env.MONGO_URL ||
   "mongodb+srv://word-chain:b0LRFzOfjbCoXkVO@cluster0.gisn7.mongodb.net/word-chain?retryWrites=true&w=majority";
-app.use(cors());
+
+app.use(cors({
+  origin: '*'
+}));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 /* Disable Cors */
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", "http://185.255.93.106:3000");
+
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Origin", "http://185.255.93.106:3000");
 
   res.setHeader(
     "Access-Control-Allow-Methods",
