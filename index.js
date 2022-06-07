@@ -19,10 +19,8 @@ const roomRoutes = require("./src/route/roomRoutes");
 /* ---------------------------------- */
 
 const app = express();
-const PORT = process.env.PORT || 5001;
-const uri =
-  process.env.MONGO_URL ||
-  "mongodb+srv://word-chain:b0LRFzOfjbCoXkVO@cluster0.gisn7.mongodb.net/word-chain?retryWrites=true&w=majority";
+const PORT = 3002;
+const uri = "mongodb://localhost:27017/wordChainDev";
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -109,7 +107,6 @@ io.on("connection", function (socket) {
   });
 
   socket.on("join", async function (data) {
-
     try {
       const room = await RoomModel.findOne({
         roomId: data.roomId,
@@ -171,7 +168,7 @@ io.on("connection", function (socket) {
           roomId: data.roomId,
         }).exec();
 
-        const newUsers = currentRoom.users.toObject().map((user) => ({
+        const newUsers = currentRoom?.users.toObject().map((user) => ({
           ...user,
           isOnline: user.id == data.user.id ? false : user.isOnline,
           isEliminated:
