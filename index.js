@@ -33,10 +33,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 /* Disable Cors */
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Origin", "http://185.255.93.106:3000");
 
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Origin", "http://185.255.93.106:3000");
 
   res.setHeader(
     "Access-Control-Allow-Methods",
