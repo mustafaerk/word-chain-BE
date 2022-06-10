@@ -31,23 +31,15 @@ app.use(
   })
 );
 
-app.use(
-  cors({
-    origin: ["http://www.linhug.com", "https://www.linhug.com"],
-  })
-);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 /* Disable Cors */
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Origin", "https://www.linhug.com");
-  res.setHeader("Access-Control-Allow-Origin", "http://www.linhug.com");
+  
 
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Origin", "https://www.linhug.com");
-  res.header("Access-Control-Allow-Origin", "http://www.linhug.com");
 
   res.setHeader(
     "Access-Control-Allow-Methods",
@@ -76,8 +68,6 @@ app.get("/", (req, res) => {
 
 router.get("/", function (req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Origin", "https://www.linhug.com");
-  res.setHeader("Access-Control-Allow-Origin", "http://www.linhug.com");
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, OPTIONS, PUT, PATCH, DELETE"
