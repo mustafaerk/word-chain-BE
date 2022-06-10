@@ -17,6 +17,7 @@ const authRoutes = require("./src/route/authRoutes");
 const roomRoutes = require("./src/route/roomRoutes");
 
 /* ---------------------------------- */
+const router = express.Router();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -24,17 +25,29 @@ const uri =
   process.env.MONGO_URL ||
   "mongodb+srv://word-chain:b0LRFzOfjbCoXkVO@cluster0.gisn7.mongodb.net/word-chain?retryWrites=true&w=majority";
 
-app.use(cors({
-  origin: '*'
-}));
+app.use(
+  cors({
+    origin: "*",
+  })
+);
+
+app.use(
+  cors({
+    origin: ["http://linhug.com/", "https://linhug.com/"],
+  })
+);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 /* Disable Cors */
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", "https://linhug.com/");
+  res.setHeader("Access-Control-Allow-Origin", "https://linhug.com/");
 
   res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Origin", "https://linhug.com/");
+  res.header("Access-Control-Allow-Origin", "https://linhug.com/");
 
   res.setHeader(
     "Access-Control-Allow-Methods",
@@ -59,6 +72,23 @@ mongoose.connect(uri, {
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
+});
+
+router.get("/", function (req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", "https://linhug.com/");
+  res.setHeader("Access-Control-Allow-Origin", "http://linhug.com/");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+  ); // If needed
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-Requested-With,content-type"
+  ); // If needed
+  res.setHeader("Access-Control-Allow-Credentials", true); // If needed
+
+  res.send("cors problem fixed:)");
 });
 
 app.use(authRoutes);
@@ -141,8 +171,7 @@ io.on("connection", function (socket) {
         if (isUserExist.isOnline) {
           socket.emit("notJoined", { message: "You are already in this room" });
           return true;
-        }
-        else {
+        } else {
           const newUsers = userList.map((user) => ({
             ...user,
             isOnline: user.id == data.user.id ? true : user.isOnline,
@@ -169,7 +198,6 @@ io.on("connection", function (socket) {
       console.log(error);
     }
 
-
     const handleLeave = async () => {
       try {
         const currentRoom = await RoomModel.findOne({
@@ -181,8 +209,8 @@ io.on("connection", function (socket) {
           isOnline: user.id == data.user.id ? false : user.isOnline,
           isEliminated:
             user.id == data.user.id &&
-              currentRoom.isStarted &&
-              currentRoom.currentUserTurn == data.user.id
+            currentRoom.isStarted &&
+            currentRoom.currentUserTurn == data.user.id
               ? true
               : user.isEliminated,
         }));
@@ -234,7 +262,6 @@ io.on("connection", function (socket) {
                 }
               }
               await currentRoom.save();
-
             } else {
               const winner = notEliminatedUsers[0];
               const newRoomIdForSave = uuidv4();
@@ -244,11 +271,13 @@ io.on("connection", function (socket) {
               currentRoom.winner = winner;
               io.in(data.roomId).emit("winner", winner);
 
-              const newUser = currentRoom.users.filter(user => user.isOnline).map((user) => ({
-                ...user,
-                isEliminated: false,
-                point: 0,
-              }));
+              const newUser = currentRoom.users
+                .filter((user) => user.isOnline)
+                .map((user) => ({
+                  ...user,
+                  isEliminated: false,
+                  point: 0,
+                }));
 
               const newRoom = {
                 roomId: currentRoomId,
@@ -277,9 +306,9 @@ io.on("connection", function (socket) {
           }
         }
         socket.leave(data.roomId);
-        socket.removeAllListeners('word');
-        socket.removeAllListeners('start');
-        socket.removeAllListeners('timeUp');
+        socket.removeAllListeners("word");
+        socket.removeAllListeners("start");
+        socket.removeAllListeners("timeUp");
       } catch (error) {
         console.error(error);
         return;
@@ -287,7 +316,7 @@ io.on("connection", function (socket) {
     };
 
     socket.on("disconnect", async function () {
-      console.log('disconnected')
+      console.log("disconnected");
       handleLeave();
     });
 
@@ -295,7 +324,6 @@ io.on("connection", function (socket) {
     socket.on("leave", async function () {
       handleLeave();
     });
-
 
     // Game Start
     socket.on("start", async function () {
@@ -321,7 +349,11 @@ io.on("connection", function (socket) {
           { $push: { words: { word, ownerId: data.user.id } } }
         );
 
-        currentRoom.users = currentRoom.users.map(user => ({ ...user, point: user.id == data.user.id ? user.point + pointOfWord : user.point }));
+        currentRoom.users = currentRoom.users.map((user) => ({
+          ...user,
+          point:
+            user.id == data.user.id ? user.point + pointOfWord : user.point,
+        }));
 
         const onlineUserList = currentRoom.users.filter(
           (user) => user.isOnline && !user.isEliminated
@@ -406,9 +438,11 @@ io.on("connection", function (socket) {
           io.in(data.roomId).emit("winner", winner);
 
           await oldRoom.save();
-          const newUser = currentUsers.filter(user => user.isOnline).map((user) => {
-            return { ...user, isEliminated: false, point: 0 };
-          });
+          const newUser = currentUsers
+            .filter((user) => user.isOnline)
+            .map((user) => {
+              return { ...user, isEliminated: false, point: 0 };
+            });
 
           const newRoom = {
             roomId: currentRoomId,
@@ -436,8 +470,6 @@ io.on("connection", function (socket) {
         return;
       }
     });
-
-
   });
 
   socket.on("createRoom", async function (data) {
