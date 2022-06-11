@@ -23,7 +23,7 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 const uri =
   process.env.MONGO_URL ||
-  "mongodb+srv://word-chain:b0LRFzOfjbCoXkVO@cluster0.gisn7.mongodb.net/word-chain?retryWrites=true&w=majority";
+  "mongodb://linhug:wordchain@185.255.93.106:27017/?authMechanism=DEFAULT&authSource=test";
 
 app.use(
   cors({
