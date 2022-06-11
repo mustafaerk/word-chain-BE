@@ -31,6 +31,7 @@ app.use(
   })
 );
 
+app.use(express.static(__dirname + '/avatar'));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
