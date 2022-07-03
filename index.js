@@ -15,6 +15,7 @@ var cors = require("cors");
 
 const authRoutes = require("./src/route/authRoutes");
 const roomRoutes = require("./src/route/roomRoutes");
+const translateRoutes = require("./src/route/translate");
 
 /* ---------------------------------- */
 const router = express.Router();
@@ -84,6 +85,7 @@ router.get("/", function (req, res) {
 
 app.use(authRoutes);
 app.use(roomRoutes);
+app.use(translateRoutes);
 
 var server = app.listen(PORT, () => {
   console.log(PORT, "Server is Running...");
